@@ -1,0 +1,122 @@
+{
+  "capturedAt": "2026-09-28T03:55:44.965Z",
+  "source": {
+    "command": "<LOCALAPPDATA>\\OpenAI\\Codex\\bin\\faa963e871dd422c\\codex.exe app-server",
+    "transport": "JSON-RPC over stdio (newline-delimited)",
+    "codexVersion": "codex-cli 0.158.0-alpha.2.1",
+    "protocolSchema": "generated via `codex app-server generate-json-schema` (app-server protocol v2)"
+  },
+  "method": "account/rateLimits/read",
+  "params": {
+    "supportsLunaReserve": false,
+    "excludeResetCreditDetails": false
+  },
+  "notificationsObserved": [
+    "remoteControl/status/changed",
+    "account/updated"
+  ],
+  "redaction": {
+    "applied": true,
+    "note": "account/user/workspace ids, emails, tokens, opaque reset-credit ids, long numeric ids removed; quota percentages, window durations, epoch timestamps, enums preserved"
+  },
+  "initializeResponseRedacted": {
+    "userAgent": "[REDACTED]",
+    "codexHome": "[LOCAL_PATH]",
+    "platformFamily": "windows",
+    "platformOs": "windows"
+  },
+  "responseRedacted": {
+    "ordinaryUsageAllowed": true,
+    "rateLimits": {
+      "limitId": "codex",
+      "limitName": null,
+      "normalModelSlug": null,
+      "primary": {
+        "usedPercent": 10,
+        "windowDurationMins": 300,
+        "resetsAt": 1790584624
+      },
+      "secondary": {
+        "usedPercent": 24,
+        "windowDurationMins": 10080,
+        "resetsAt": 1791048061
+      },
+      "credits": {
+        "hasCredits": false,
+        "unlimited": false,
+        "balance": "0"
+      },
+      "individualLimit": null,
+      "spendControlReached": false,
+      "planType": "plus",
+      "rateLimitReachedType": null
+    },
+    "rateLimitsByLimitId": {
+      "codex": {
+        "limitId": "codex",
+        "limitName": null,
+        "normalModelSlug": null,
+        "primary": {
+          "usedPercent": 10,
+          "windowDurationMins": 300,
+          "resetsAt": 1790584624
+        },
+        "secondary": {
+          "usedPercent": 24,
+          "windowDurationMins": 10080,
+          "resetsAt": 1791048061
+        },
+        "credits": {
+          "hasCredits": false,
+          "unlimited": false,
+          "balance": "0"
+        },
+        "individualLimit": null,
+        "spendControlReached": false,
+        "planType": "plus",
+        "rateLimitReachedType": null
+      },
+      "base_model_inference": {
+        "limitId": "base_model_inference",
+        "limitName": "gpt-reserve",
+        "normalModelSlug": "gpt-5.6-luna",
+        "primary": {
+          "usedPercent": 0,
+          "windowDurationMins": 10080,
+          "resetsAt": 1791172542
+        },
+        "secondary": null,
+        "credits": null,
+        "individualLimit": null,
+        "spendControlReached": null,
+        "planType": "plus",
+        "rateLimitReachedType": null
+      }
+    },
+    "rateLimitResetCredits": {
+      "availableCount": 2,
+      "credits": [
+        {
+          "id": "[REDACTED]",
+          "resetType": "codexRateLimits",
+          "status": "available",
+          "grantedAt": 1788564150,
+          "expiresAt": 1791156150,
+          "title": "Full reset (Weekly + 5 hr)",
+          "description": "Thanks for using Codex! You've been granted one free rate limit reset."
+        },
+        {
+          "id": "[REDACTED]",
+          "resetType": "codexRateLimits",
+          "status": "available",
+          "grantedAt": 1790107306,
+          "expiresAt": 1792699306,
+          "title": "Full reset (Weekly + 5 hr)",
+          "description": "Thanks for using Codex! You've been granted one free rate limit reset."
+        }
+      ]
+    },
+    "accountId": "[REDACTED_UUID]",
+    "rateLimitUpsell": null
+  }
+}

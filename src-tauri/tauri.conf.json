@@ -1,0 +1,98 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Agent Quota Monitor",
+  "version": "0.1.0",
+  "identifier": "com.agentquotamonitor.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    },
+    "windows": [
+      {
+        "label": "widget",
+        "title": "Agent Quota Monitor",
+        "width": 300,
+        "height": 250,
+        "transparent": true,
+        "decorations": false,
+        "resizable": false,
+        "skipTaskbar": true,
+        "shadow": false,
+        "alwaysOnTop": false,
+        "visible": true
+      },
+      {
+        "label": "settings",
+        "title": "设置 — Agent Quota Monitor",
+        "url": "index.html",
+        "width": 640,
+        "height": 580,
+        "transparent": true,
+        "decorations": false,
+        "resizable": false,
+        "shadow": false,
+        "center": true,
+        "visible": false
+      },
+      {
+        "label": "tray-menu",
+        "title": "Menu",
+        "url": "index.html",
+        "width": 200,
+        "height": 176,
+        "transparent": true,
+        "decorations": false,
+        "resizable": false,
+        "skipTaskbar": true,
+        "alwaysOnTop": true,
+        "visible": false
+      },
+      {
+        "label": "mimo-login",
+        "title": "MiMo 登录 — Agent Quota Monitor",
+        "url": "https://platform.xiaomimimo.com/#/console/plan-manage",
+        "width": 480,
+        "height": 720,
+        "minWidth": 360,
+        "minHeight": 480,
+        "resizable": true,
+        "center": true,
+        "visible": false
+      },
+      {
+        "label": "wb-login",
+        "title": "WorkBuddy 登录 — Agent Quota Monitor",
+        "url": "https://www.workbuddy.cn/profile/plans-usage",
+        "width": 520,
+        "height": 760,
+        "minWidth": 400,
+        "minHeight": 520,
+        "resizable": true,
+        "center": true,
+        "visible": false
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico"],
+    "windows": {
+      "nsis": {
+        "installMode": "both",
+        "languages": ["SimpChinese", "English"],
+        "displayLanguageSelector": true,
+        "headerImage": "installer/header.bmp",
+        "sidebarImage": "installer/sidebar.bmp",
+        "installerHooks": "./installer/hooks.nsh"
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+# Build
+node_modules/
+dist/
+src-tauri/target/
+
+# Logs / OS
+*.log
+.DS_Store
+Thumbs.db
+
+# Local secrets (never commit)
+*.key
+.env
+.env.*
+
+# Harness browser profile (may contain cookies — never commit)
+.tmp-mimo/
+tmp-mimo/
+
+# Generated runtime downloads
+AppData/
+
+# Mimosa 安全钩子本地状态（勿入库）
+.mimosa/
+src-tauri/.mimosa/
+
+# WorkBuddy 抓包 harness 临时产物（含登录 profile，绝不可入库）
+.tmp-workbuddy/

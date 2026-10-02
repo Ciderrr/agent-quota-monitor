@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "workbuddy-remote",
+  "description": "WorkBuddy 官方页（远程内容）仅启用 IPC 桥（无任何插件权限）；应用命令不受 ACL 限制",
+  "windows": ["wb-login"],
+  "remote": {
+    "urls": ["https://www.workbuddy.cn/*"]
+  },
+  "permissions": []
+}

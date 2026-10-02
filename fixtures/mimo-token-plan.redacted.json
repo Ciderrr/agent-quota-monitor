@@ -1,0 +1,1477 @@
+{
+  "capturedAt": "2026-09-28T16:17:22.259Z",
+  "source": {
+    "page": "https://platform.xiaomimimo.com/#/console/plan-manage",
+    "harness": "scripts/mimo-console-harness.mjs (research-only)",
+    "note": "user logged in on the official page; only quota-related same-origin API traffic captured"
+  },
+  "redaction": {
+    "applied": true,
+    "note": "header VALUES never recorded (names only); query values replaced by key placeholders; response fields token/cookie/account/phone/email etc. masked; quota numbers preserved"
+  },
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/balanceAlertConfig",
+      "headerNames": [
+        "sec-ch-ua-platform",
+        "referer",
+        "accept-language",
+        "sec-ch-ua",
+        "x-timezone",
+        "sec-ch-ua-mobile",
+        "user-agent",
+        "content-type"
+      ]
+    },
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/tokenPlan/list",
+      "headerNames": [
+        "sec-ch-ua-platform",
+        "referer",
+        "accept-language",
+        "sec-ch-ua",
+        "x-timezone",
+        "sec-ch-ua-mobile",
+        "user-agent",
+        "content-type"
+      ]
+    },
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/tokenPlan/detail",
+      "headerNames": [
+        "sec-ch-ua-platform",
+        "referer",
+        "accept-language",
+        "sec-ch-ua",
+        "x-timezone",
+        "sec-ch-ua-mobile",
+        "user-agent",
+        "content-type"
+      ]
+    },
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/tokenPlan/subscription/status",
+      "headerNames": [
+        "sec-ch-ua-platform",
+        "referer",
+        "accept-language",
+        "sec-ch-ua",
+        "x-timezone",
+        "sec-ch-ua-mobile",
+        "user-agent",
+        "content-type"
+      ]
+    },
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/tokenPlan/detail",
+      "headerNames": [
+        "sec-ch-ua-platform",
+        "referer",
+        "accept-language",
+        "sec-ch-ua",
+        "x-timezone",
+        "sec-ch-ua-mobile",
+        "user-agent",
+        "content-type"
+      ]
+    },
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/tokenPlan/usage",
+      "headerNames": [
+        "sec-ch-ua-platform",
+        "referer",
+        "accept-language",
+        "sec-ch-ua",
+        "x-timezone",
+        "sec-ch-ua-mobile",
+        "user-agent",
+        "content-type"
+      ]
+    },
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/tokenPlan/detail",
+      "headerNames": [
+        "sec-ch-ua-platform",
+        "referer",
+        "accept-language",
+        "sec-ch-ua",
+        "x-timezone",
+        "sec-ch-ua-mobile",
+        "user-agent",
+        "content-type"
+      ]
+    },
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/tokenPlan/usage",
+      "headerNames": [
+        "sec-ch-ua-platform",
+        "referer",
+        "accept-language",
+        "sec-ch-ua",
+        "x-timezone",
+        "sec-ch-ua-mobile",
+        "user-agent",
+        "content-type"
+      ]
+    },
+    {
+      "method": "POST",
+      "url": "https://platform.xiaomimimo.com/api/v1/usage/token-plan/list?[Q:api-platform_ph]",
+      "headerNames": [
+        "sec-ch-ua-platform",
+        "referer",
+        "accept-language",
+        "sec-ch-ua",
+        "x-timezone",
+        "sec-ch-ua-mobile",
+        "user-agent",
+        "content-type"
+      ]
+    }
+  ],
+  "responses": [
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/balanceAlertConfig",
+      "status": 200,
+      "headerNames": [
+        "_trace_id_",
+        "content-encoding",
+        "content-type",
+        "date",
+        "server",
+        "x-mife-upstream-status"
+      ],
+      "bodyRedacted": {
+        "code": 0,
+        "message": ""
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/tokenPlan/list",
+      "status": 200,
+      "headerNames": [
+        "_trace_id_",
+        "content-encoding",
+        "content-type",
+        "date",
+        "server",
+        "x-mife-upstream-status"
+      ],
+      "bodyRedacted": {
+        "code": 0,
+        "message": "",
+        "data": [
+          {
+            "planCode": "lite",
+            "planName": "[REDACTED]",
+            "descriptionCn": "尝鲜入门",
+            "descriptionEn": "Starter Pack",
+            "descriptionV2Cn": "轻量体验",
+            "descriptionV2En": "Light Use",
+            "planLevel": 1,
+            "originalPrice": "39.00",
+            "discountPrice": "34.32",
+            "planPrice": "39.00",
+            "currency": "CNY",
+            "tokenQuotaCn": "[REDACTED]",
+            "tokenQuotaEn": "[REDACTED]",
+            "periodInterval": 1,
+            "featuresCn": [
+              "支持 V2.6 全系列模型（文本旗舰 / 全模态 / 语音）",
+              "4,100,000,000 Credits 套餐月总量",
+              "支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗",
+              "TTS 系列模型限时免费使用"
+            ],
+            "featuresEn": [
+              "Supports the full V2.6 model lineup (text flagship / multimodal / speech)",
+              "4,100,000,000 Credits monthly package total",
+              "Works with popular coding tools like OpenClaw、Codex、ClaudeCode、MiMoCode",
+              "20% off during off-peak hours(9:00 AM-5:00 PM PDT)",
+              "Free access to TTS models for a limited time"
+            ],
+            "featureItemsCn": [
+              {
+                "title": "支持 V2.6 全新旗舰模型",
+                "description": "文本模型 / 全模态 / 语音"
+              },
+              {
+                "title": "41 亿 Credits",
+                "description": "套餐月总量"
+              },
+              {
+                "title": "支持主流编程框架",
+                "description": "OpenClaw / Codex / MiMo Claw 等"
+              },
+              {
+                "title": "TTS 模型免费",
+                "description": "限时免费使用"
+              },
+              {
+                "title": "夜间 0.8x 消耗",
+                "description": "00:00—08:00 · UTC+8"
+              },
+              {
+                "title": "畅快使用",
+                "description": "无周限额 · 无 5 小时限额"
+              }
+            ],
+            "featureItemsEn": [
+              {
+                "title": "V2.6 Flagship Model Access",
+                "description": "Text / Multimodal / Speech"
+              },
+              {
+                "title": "4.1 Billion Credits",
+                "description": "Monthly package total"
+              },
+              {
+                "title": "Coding Framework Support",
+                "description": "OpenClaw / Codex / MiMo Claw etc."
+              },
+              {
+                "title": "Free TTS Models",
+                "description": "Limited time offer"
+              },
+              {
+                "title": "Night 0.8x Usage",
+                "description": "00:00-08:00 -UTC+8"
+              },
+              {
+                "title": "Unlimited Usage",
+                "description": "No weekly cap·No 5-hour cap"
+              }
+            ],
+            "rightsCn": [
+              "模型\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "额度\t41 亿 Credits",
+              "编程工具\t支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "其他权益\t非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗；TTS 系列模型限时免费使用"
+            ],
+            "rightsEn": [
+              "Models\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "Credits\t4.1 Billion Credits",
+              "Coding Tools\tSupport for mainstream coding tools including OpenClaw、Codex、ClaudeCode、MiMoCode and others",
+              "Other Benefits\t20% off during off-peak hours(9:00 AM-5:00 PM PDT); TTS models available for free use for a limited time"
+            ],
+            "active": true,
+            "purchased": false,
+            "subscribeType": "MONTHLY",
+            "availableDiscount": null,
+            "overseasAvailableDiscount": null,
+            "newUserDiscountAmount": "4.68",
+            "inviteDiscount": null,
+            "claw": {
+              "originalPrice": "19.90",
+              "discountPrice": "14.90",
+              "featuresCn": [
+                "专属龙虾：7x24h",
+                "多任务并行",
+                "金山办公深度服务"
+              ],
+              "featuresEn": [
+                "Exclusive Lobster: 7x24-hour service",
+                "multi-tasking",
+                "in-depth WPS Office services"
+              ],
+              "featuresV2Cn": [
+                "专属龙虾",
+                "金山办公",
+                "多任务并行"
+              ],
+              "featuresV2En": [
+                "Exclusive Lobster",
+                "WPS Services",
+                "Parallel Multitasking"
+              ]
+            }
+          },
+          {
+            "planCode": "standard",
+            "planName": "[REDACTED]",
+            "descriptionCn": "适合进阶用户",
+            "descriptionEn": "For Advanced Users",
+            "descriptionV2Cn": "日常办公",
+            "descriptionV2En": "Daily Work",
+            "planLevel": 10,
+            "originalPrice": "99.00",
+            "discountPrice": "87.12",
+            "planPrice": "99.00",
+            "currency": "CNY",
+            "tokenQuotaCn": "[REDACTED]",
+            "tokenQuotaEn": "[REDACTED]",
+            "periodInterval": 1,
+            "featuresCn": [
+              "支持 V2.6 全系列模型（文本旗舰 / 全模态 / 语音）",
+              "11,000,000,000 Credits 套餐月总量",
+              "2.7倍 Lite 套餐用量",
+              "支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗",
+              "TTS 系列模型限时免费使用"
+            ],
+            "featuresEn": [
+              "Supports the full V2.6 model lineup (text flagship / multimodal / speech)",
+              "11,000,000,000 Credits monthly package total",
+              "2.7x Lite Usage",
+              "Works with popular coding tools like OpenClaw、Codex、ClaudeCode、MiMoCode",
+              "20% off during off-peak hours(9:00 AM-5:00 PM PDT)",
+              "Free access to TTS models for a limited time"
+            ],
+            "featureItemsCn": [
+              {
+                "title": "支持 V2.6 全新旗舰模型",
+                "description": "文本模型 / 全模态 / 语音"
+              },
+              {
+                "title": "110 亿 Credits",
+                "description": "= 2.7 x Lite"
+              },
+              {
+                "title": "支持主流编程框架",
+                "description": "OpenClaw / Codex / MiMo Claw 等"
+              },
+              {
+                "title": "TTS 模型免费",
+                "description": "限时免费使用"
+              },
+              {
+                "title": "夜间 0.8x 消耗",
+                "description": "00:00—08:00 · UTC+8"
+              },
+              {
+                "title": "畅快使用",
+                "description": "无周限额 · 无 5 小时限额"
+              }
+            ],
+            "featureItemsEn": [
+              {
+                "title": "V2.6 Flagship Model Access",
+                "description": "Text / Multimodal / Speech"
+              },
+              {
+                "title": "11 Billion Credits",
+                "description": "= 2.7 x Lite"
+              },
+              {
+                "title": "Coding Framework Support",
+                "description": "OpenClaw / Codex / MiMo Claw etc."
+              },
+              {
+                "title": "Free TTS Models",
+                "description": "Limited time offer"
+              },
+              {
+                "title": "Night 0.8x Usage",
+                "description": "00:00-08:00 -UTC+8"
+              },
+              {
+                "title": "Unlimited Usage",
+                "description": "No weekly cap·No 5-hour cap"
+              }
+            ],
+            "rightsCn": [
+              "模型\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "额度\t110 亿 Credits",
+              "编程工具\t支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "其他权益\t非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗；TTS 系列模型限时免费使用"
+            ],
+            "rightsEn": [
+              "Models\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "Credits\t11 Billion Credits",
+              "Coding Tools\tSupport for mainstream coding tools including OpenClaw、Codex、ClaudeCode、MiMoCode and others",
+              "Other Benefits\t20% off during off-peak hours(9:00 AM-5:00 PM PDT); TTS models available for free use for a limited time"
+            ],
+            "active": true,
+            "purchased": true,
+            "subscribeType": "MONTHLY",
+            "availableDiscount": null,
+            "overseasAvailableDiscount": null,
+            "newUserDiscountAmount": "11.88",
+            "inviteDiscount": null,
+            "claw": {
+              "originalPrice": "19.90",
+              "discountPrice": "14.90",
+              "featuresCn": [
+                "专属龙虾：7x24h",
+                "多任务并行",
+                "金山办公深度服务"
+              ],
+              "featuresEn": [
+                "Exclusive Lobster: 7x24-hour service",
+                "multi-tasking",
+                "in-depth WPS Office services"
+              ],
+              "featuresV2Cn": [
+                "专属龙虾",
+                "金山办公",
+                "多任务并行"
+              ],
+              "featuresV2En": [
+                "Exclusive Lobster",
+                "WPS Services",
+                "Parallel Multitasking"
+              ]
+            }
+          },
+          {
+            "planCode": "pro",
+            "planName": "[REDACTED]",
+            "descriptionCn": "适合专业开发者",
+            "descriptionEn": "For Professionals",
+            "descriptionV2Cn": "专业开发",
+            "descriptionV2En": "Pro Dev",
+            "planLevel": 100,
+            "originalPrice": "329.00",
+            "discountPrice": "289.52",
+            "planPrice": "329.00",
+            "currency": "CNY",
+            "tokenQuotaCn": "[REDACTED]",
+            "tokenQuotaEn": "[REDACTED]",
+            "periodInterval": 1,
+            "featuresCn": [
+              "支持 V2.6 全系列模型（文本旗舰 / 全模态 / 语音）",
+              "38,000,000,000 Credits 套餐月总量",
+              "9.3倍 Lite 套餐用量",
+              "支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗",
+              "TTS 系列模型限时免费使用"
+            ],
+            "featuresEn": [
+              "Supports the full V2.6 model lineup (text flagship / multimodal / speech)",
+              "38,000,000,000 Credits monthly package total",
+              "9.3x Lite Usage",
+              "Works with popular coding tools like OpenClaw、Codex、ClaudeCode、MiMoCode",
+              "20% off during off-peak hours(9:00 AM-5:00 PM PDT)",
+              "Free access to TTS models for a limited time"
+            ],
+            "featureItemsCn": [
+              {
+                "title": "支持 V2.6 全新旗舰模型",
+                "description": "文本模型 / 全模态 / 语音"
+              },
+              {
+                "title": "380 亿 Credits",
+                "description": "= 9.3 x Lite"
+              },
+              {
+                "title": "支持主流编程框架",
+                "description": "OpenClaw / Codex / MiMo Claw 等"
+              },
+              {
+                "title": "TTS 模型免费",
+                "description": "限时免费使用"
+              },
+              {
+                "title": "夜间 0.8x 消耗",
+                "description": "00:00—08:00 · UTC+8"
+              },
+              {
+                "title": "畅快使用",
+                "description": "无周限额 · 无 5 小时限额"
+              }
+            ],
+            "featureItemsEn": [
+              {
+                "title": "V2.6 Flagship Model Access",
+                "description": "Text / Multimodal / Speech"
+              },
+              {
+                "title": "38 Billion Credits",
+                "description": "= 9.3 x Lite"
+              },
+              {
+                "title": "Coding Framework Support",
+                "description": "OpenClaw / Codex / MiMo Claw etc."
+              },
+              {
+                "title": "Free TTS Models",
+                "description": "Limited time offer"
+              },
+              {
+                "title": "Night 0.8x Usage",
+                "description": "00:00-08:00 -UTC+8"
+              },
+              {
+                "title": "Unlimited Usage",
+                "description": "No weekly cap·No 5-hour cap"
+              }
+            ],
+            "rightsCn": [
+              "模型\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "额度\t380 亿 Credits",
+              "编程工具\t支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "其他权益\t非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗；TTS 系列模型限时免费使用"
+            ],
+            "rightsEn": [
+              "Models\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "Credits\t38 Billion Credits",
+              "Coding Tools\tSupport for mainstream coding tools including OpenClaw、Codex、ClaudeCode、MiMoCode and others",
+              "Other Benefits\t20% off during off-peak hours(9:00 AM-5:00 PM PDT); TTS models available for free use for a limited time"
+            ],
+            "active": true,
+            "purchased": false,
+            "subscribeType": "MONTHLY",
+            "availableDiscount": null,
+            "overseasAvailableDiscount": null,
+            "newUserDiscountAmount": "39.48",
+            "inviteDiscount": null,
+            "claw": {
+              "originalPrice": "19.90",
+              "discountPrice": "14.90",
+              "featuresCn": [
+                "专属龙虾：7x24h",
+                "多任务并行",
+                "金山办公深度服务"
+              ],
+              "featuresEn": [
+                "Exclusive Lobster: 7x24-hour service",
+                "multi-tasking",
+                "in-depth WPS Office services"
+              ],
+              "featuresV2Cn": [
+                "专属龙虾",
+                "金山办公",
+                "多任务并行"
+              ],
+              "featuresV2En": [
+                "Exclusive Lobster",
+                "WPS Services",
+                "Parallel Multitasking"
+              ]
+            }
+          },
+          {
+            "planCode": "max",
+            "planName": "[REDACTED]",
+            "descriptionCn": "适合编程开发发烧友",
+            "descriptionEn": "For Coding Enthusiasts",
+            "descriptionV2Cn": "高强度开发",
+            "descriptionV2En": "Power Dev",
+            "planLevel": 1000,
+            "originalPrice": "659.00",
+            "discountPrice": "579.92",
+            "planPrice": "659.00",
+            "currency": "CNY",
+            "tokenQuotaCn": "[REDACTED]",
+            "tokenQuotaEn": "[REDACTED]",
+            "periodInterval": 1,
+            "featuresCn": [
+              "支持 V2.6 全系列模型（文本旗舰 / 全模态 / 语音）",
+              "82,000,000,000 Credits 套餐月总量",
+              "20倍 Lite 套餐用量",
+              "支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗",
+              "TTS 系列模型限时免费使用"
+            ],
+            "featuresEn": [
+              "Supports the full V2.6 model lineup (text flagship / multimodal / speech)",
+              "82,000,000,000 Credits monthly package total",
+              "20x Lite Usage",
+              "Works with popular coding tools like OpenClaw、Codex、ClaudeCode、MiMoCode",
+              "20% off during off-peak hours(9:00 AM-5:00 PM PDT)",
+              "Free access to TTS models for a limited time"
+            ],
+            "featureItemsCn": [
+              {
+                "title": "支持 V2.6 全新旗舰模型",
+                "description": "文本模型 / 全模态 / 语音"
+              },
+              {
+                "title": "820 亿 Credits",
+                "description": "= 20 x Lite"
+              },
+              {
+                "title": "支持主流编程框架",
+                "description": "OpenClaw / Codex / MiMo Claw 等"
+              },
+              {
+                "title": "TTS 模型免费",
+                "description": "限时免费使用"
+              },
+              {
+                "title": "夜间 0.8x 消耗",
+                "description": "00:00—08:00 · UTC+8"
+              },
+              {
+                "title": "畅快使用",
+                "description": "无周限额 · 无 5 小时限额"
+              }
+            ],
+            "featureItemsEn": [
+              {
+                "title": "V2.6 Flagship Model Access",
+                "description": "Text / Multimodal / Speech"
+              },
+              {
+                "title": "82 Billion Credits",
+                "description": "= 20 x Lite"
+              },
+              {
+                "title": "Coding Framework Support",
+                "description": "OpenClaw / Codex / MiMo Claw etc."
+              },
+              {
+                "title": "Free TTS Models",
+                "description": "Limited time offer"
+              },
+              {
+                "title": "Night 0.8x Usage",
+                "description": "00:00-08:00 -UTC+8"
+              },
+              {
+                "title": "Unlimited Usage",
+                "description": "No weekly cap·No 5-hour cap"
+              }
+            ],
+            "rightsCn": [
+              "模型\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "额度\t820 亿 Credits",
+              "编程工具\t支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "其他权益\t非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗；TTS 系列模型限时免费使用"
+            ],
+            "rightsEn": [
+              "Models\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "Credits\t82 Billion Credits",
+              "Coding Tools\tSupport for mainstream coding tools including OpenClaw、Codex、ClaudeCode、MiMoCode and others",
+              "Other Benefits\t20% off during off-peak hours(9:00 AM-5:00 PM PDT); TTS models available for free use for a limited time"
+            ],
+            "active": true,
+            "purchased": false,
+            "subscribeType": "MONTHLY",
+            "availableDiscount": null,
+            "overseasAvailableDiscount": null,
+            "newUserDiscountAmount": "79.08",
+            "inviteDiscount": null,
+            "claw": {
+              "originalPrice": "19.90",
+              "discountPrice": "14.90",
+              "featuresCn": [
+                "专属龙虾：7x24h",
+                "多任务并行",
+                "金山办公深度服务"
+              ],
+              "featuresEn": [
+                "Exclusive Lobster: 7x24-hour service",
+                "multi-tasking",
+                "in-depth WPS Office services"
+              ],
+              "featuresV2Cn": [
+                "专属龙虾",
+                "金山办公",
+                "多任务并行"
+              ],
+              "featuresV2En": [
+                "Exclusive Lobster",
+                "WPS Services",
+                "Parallel Multitasking"
+              ]
+            }
+          },
+          {
+            "planCode": "lite:year",
+            "planName": "[REDACTED]",
+            "descriptionCn": "尝鲜入门",
+            "descriptionEn": "Starter Pack",
+            "descriptionV2Cn": "轻量体验",
+            "descriptionV2En": "Light Use",
+            "planLevel": 3,
+            "originalPrice": "468.00",
+            "discountPrice": "411.84",
+            "planPrice": "411.84",
+            "currency": "CNY",
+            "tokenQuotaCn": "[REDACTED]",
+            "tokenQuotaEn": "[REDACTED]",
+            "periodInterval": 12,
+            "featuresCn": [
+              "支持 V2.6 全系列模型（文本旗舰 / 全模态 / 语音）",
+              "49,200,000,000 Credits 套餐年总量",
+              "支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗",
+              "TTS 系列模型限时免费使用"
+            ],
+            "featuresEn": [
+              "Supports the full V2.6 model lineup (text flagship / multimodal / speech)",
+              "49,200,000,000 Credits yearly package total",
+              "Works with popular coding tools like OpenClaw、Codex、ClaudeCode、MiMoCode",
+              "20% off during off-peak hours(9:00 AM-5:00 PM PDT)",
+              "Free access to TTS models for a limited time"
+            ],
+            "featureItemsCn": [
+              {
+                "title": "支持 V2.6 全新旗舰模型",
+                "description": "文本模型 / 全模态 / 语音"
+              },
+              {
+                "title": "492 亿 Credits",
+                "description": "套餐年总量"
+              },
+              {
+                "title": "支持主流编程框架",
+                "description": "OpenClaw / Codex / MiMo Claw 等"
+              },
+              {
+                "title": "TTS 模型免费",
+                "description": "限时免费使用"
+              },
+              {
+                "title": "夜间 0.8x 消耗",
+                "description": "00:00—08:00 · UTC+8"
+              },
+              {
+                "title": "畅快使用",
+                "description": "无周限额 · 无 5 小时限额"
+              }
+            ],
+            "featureItemsEn": [
+              {
+                "title": "V2.6 Flagship Model Access",
+                "description": "Text / Multimodal / Speech"
+              },
+              {
+                "title": "49.2 Billion Credits",
+                "description": "Yearly package total"
+              },
+              {
+                "title": "Coding Framework Support",
+                "description": "OpenClaw / Codex / MiMo Claw etc."
+              },
+              {
+                "title": "Free TTS Models",
+                "description": "Limited time offer"
+              },
+              {
+                "title": "Night 0.8x Usage",
+                "description": "00:00-08:00 -UTC+8"
+              },
+              {
+                "title": "Unlimited Usage",
+                "description": "No weekly cap·No 5-hour cap"
+              }
+            ],
+            "rightsCn": [
+              "模型\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "额度\t492 亿 Credits",
+              "编程工具\t支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "其他权益\t非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗；TTS 系列模型限时免费使用"
+            ],
+            "rightsEn": [
+              "Models\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "Credits\t49.2 Billion Credits",
+              "Coding Tools\tSupport for mainstream coding tools including OpenClaw、Codex、ClaudeCode、MiMoCode and others",
+              "Other Benefits\t20% off during off-peak hours(9:00 AM-5:00 PM PDT); TTS models available for free use for a limited time"
+            ],
+            "active": true,
+            "purchased": false,
+            "subscribeType": "YEARLY",
+            "availableDiscount": null,
+            "overseasAvailableDiscount": null,
+            "newUserDiscountAmount": "56.16",
+            "inviteDiscount": null,
+            "claw": {
+              "originalPrice": "233.80",
+              "discountPrice": "233.80",
+              "featuresCn": [
+                "专属龙虾：7x24h",
+                "多任务并行",
+                "金山办公深度服务"
+              ],
+              "featuresEn": [
+                "Exclusive Lobster: 7x24-hour service",
+                "multi-tasking",
+                "in-depth WPS Office services"
+              ],
+              "featuresV2Cn": [
+                "专属龙虾",
+                "金山办公",
+                "多任务并行"
+              ],
+              "featuresV2En": [
+                "Exclusive Lobster",
+                "WPS Services",
+                "Parallel Multitasking"
+              ]
+            }
+          },
+          {
+            "planCode": "standard:year",
+            "planName": "[REDACTED]",
+            "descriptionCn": "适合进阶用户",
+            "descriptionEn": "For Advanced Users",
+            "descriptionV2Cn": "日常办公",
+            "descriptionV2En": "Daily Work",
+            "planLevel": 13,
+            "originalPrice": "1188.00",
+            "discountPrice": "1045.44",
+            "planPrice": "1045.44",
+            "currency": "CNY",
+            "tokenQuotaCn": "[REDACTED]",
+            "tokenQuotaEn": "[REDACTED]",
+            "periodInterval": 12,
+            "featuresCn": [
+              "支持 V2.6 全系列模型（文本旗舰 / 全模态 / 语音）",
+              "132,000,000,000 Credits 套餐年总量",
+              "2.7倍 Lite 套餐用量",
+              "支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗",
+              "TTS 系列模型限时免费使用"
+            ],
+            "featuresEn": [
+              "Supports the full V2.6 model lineup (text flagship / multimodal / speech)",
+              "132,000,000,000 Credits yearly package total",
+              "2.7x Lite Usage",
+              "Works with popular coding tools like OpenClaw、Codex、ClaudeCode、MiMoCode",
+              "20% off during off-peak hours(9:00 AM-5:00 PM PDT)",
+              "Free access to TTS models for a limited time"
+            ],
+            "featureItemsCn": [
+              {
+                "title": "支持 V2.6 全新旗舰模型",
+                "description": "文本模型 / 全模态 / 语音"
+              },
+              {
+                "title": "1320 亿 Credits",
+                "description": "= 2.7 x Lite"
+              },
+              {
+                "title": "支持主流编程框架",
+                "description": "OpenClaw / Codex / MiMo Claw 等"
+              },
+              {
+                "title": "TTS 模型免费",
+                "description": "限时免费使用"
+              },
+              {
+                "title": "夜间 0.8x 消耗",
+                "description": "00:00—08:00 · UTC+8"
+              },
+              {
+                "title": "畅快使用",
+                "description": "无周限额 · 无 5 小时限额"
+              }
+            ],
+            "featureItemsEn": [
+              {
+                "title": "V2.6 Flagship Model Access",
+                "description": "Text / Multimodal / Speech"
+              },
+              {
+                "title": "132 Billion Credits",
+                "description": "= 2.7 x Lite"
+              },
+              {
+                "title": "Coding Framework Support",
+                "description": "OpenClaw / Codex / MiMo Claw etc."
+              },
+              {
+                "title": "Free TTS Models",
+                "description": "Limited time offer"
+              },
+              {
+                "title": "Night 0.8x Usage",
+                "description": "00:00-08:00 -UTC+8"
+              },
+              {
+                "title": "Unlimited Usage",
+                "description": "No weekly cap·No 5-hour cap"
+              }
+            ],
+            "rightsCn": [
+              "模型\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "额度\t1320 亿 Credits",
+              "编程工具\t支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "其他权益\t非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗；TTS 系列模型限时免费使用"
+            ],
+            "rightsEn": [
+              "Models\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "Credits\t132 Billion Credits",
+              "Coding Tools\tSupport for mainstream coding tools including OpenClaw、Codex、ClaudeCode、MiMoCode and others",
+              "Other Benefits\t20% off during off-peak hours(9:00 AM-5:00 PM PDT); TTS models available for free use for a limited time"
+            ],
+            "active": true,
+            "purchased": false,
+            "subscribeType": "YEARLY",
+            "availableDiscount": null,
+            "overseasAvailableDiscount": null,
+            "newUserDiscountAmount": "142.56",
+            "inviteDiscount": null,
+            "claw": {
+              "originalPrice": "233.80",
+              "discountPrice": "233.80",
+              "featuresCn": [
+                "专属龙虾：7x24h",
+                "多任务并行",
+                "金山办公深度服务"
+              ],
+              "featuresEn": [
+                "Exclusive Lobster: 7x24-hour service",
+                "multi-tasking",
+                "in-depth WPS Office services"
+              ],
+              "featuresV2Cn": [
+                "专属龙虾",
+                "金山办公",
+                "多任务并行"
+              ],
+              "featuresV2En": [
+                "Exclusive Lobster",
+                "WPS Services",
+                "Parallel Multitasking"
+              ]
+            }
+          },
+          {
+            "planCode": "pro:year",
+            "planName": "[REDACTED]",
+            "descriptionCn": "适合专业开发者",
+            "descriptionEn": "For Professionals",
+            "descriptionV2Cn": "专业开发",
+            "descriptionV2En": "Pro Dev",
+            "planLevel": 103,
+            "originalPrice": "3948.00",
+            "discountPrice": "3474.24",
+            "planPrice": "3474.24",
+            "currency": "CNY",
+            "tokenQuotaCn": "[REDACTED]",
+            "tokenQuotaEn": "[REDACTED]",
+            "periodInterval": 12,
+            "featuresCn": [
+              "支持 V2.6 全系列模型（文本旗舰 / 全模态 / 语音）",
+              "456,000,000,000 Credits 套餐年总量",
+              "9.3倍 Lite 套餐用量",
+              "支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗",
+              "TTS 系列模型限时免费使用"
+            ],
+            "featuresEn": [
+              "Supports the full V2.6 model lineup (text flagship / multimodal / speech)",
+              "456,000,000,000 Credits yearly package total",
+              "9.3x Lite Usage",
+              "Works with popular coding tools like OpenClaw、Codex、ClaudeCode、MiMoCode",
+              "20% off during off-peak hours(9:00 AM-5:00 PM PDT)",
+              "Free access to TTS models for a limited time"
+            ],
+            "featureItemsCn": [
+              {
+                "title": "支持 V2.6 全新旗舰模型",
+                "description": "文本模型 / 全模态 / 语音"
+              },
+              {
+                "title": "4560 亿 Credits",
+                "description": "= 9.3 x Lite"
+              },
+              {
+                "title": "支持主流编程框架",
+                "description": "OpenClaw / Codex / MiMo Claw 等"
+              },
+              {
+                "title": "TTS 模型免费",
+                "description": "限时免费使用"
+              },
+              {
+                "title": "夜间 0.8x 消耗",
+                "description": "00:00—08:00 · UTC+8"
+              },
+              {
+                "title": "畅快使用",
+                "description": "无周限额 · 无 5 小时限额"
+              }
+            ],
+            "featureItemsEn": [
+              {
+                "title": "V2.6 Flagship Model Access",
+                "description": "Text / Multimodal / Speech"
+              },
+              {
+                "title": "456 Billion Credits",
+                "description": "= 9.3 x Lite"
+              },
+              {
+                "title": "Coding Framework Support",
+                "description": "OpenClaw / Codex / MiMo Claw etc."
+              },
+              {
+                "title": "Free TTS Models",
+                "description": "Limited time offer"
+              },
+              {
+                "title": "Night 0.8x Usage",
+                "description": "00:00-08:00 -UTC+8"
+              },
+              {
+                "title": "Unlimited Usage",
+                "description": "No weekly cap·No 5-hour cap"
+              }
+            ],
+            "rightsCn": [
+              "模型\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "额度\t4560 亿 Credits",
+              "编程工具\t支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "其他权益\t非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗；TTS 系列模型限时免费使用"
+            ],
+            "rightsEn": [
+              "Models\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "Credits\t456 Billion Credits",
+              "Coding Tools\tSupport for mainstream coding tools including OpenClaw、Codex、ClaudeCode、MiMoCode and others",
+              "Other Benefits\t20% off during off-peak hours(9:00 AM-5:00 PM PDT); TTS models available for free use for a limited time"
+            ],
+            "active": true,
+            "purchased": false,
+            "subscribeType": "YEARLY",
+            "availableDiscount": null,
+            "overseasAvailableDiscount": null,
+            "newUserDiscountAmount": "473.76",
+            "inviteDiscount": null,
+            "claw": {
+              "originalPrice": "233.80",
+              "discountPrice": "233.80",
+              "featuresCn": [
+                "专属龙虾：7x24h",
+                "多任务并行",
+                "金山办公深度服务"
+              ],
+              "featuresEn": [
+                "Exclusive Lobster: 7x24-hour service",
+                "multi-tasking",
+                "in-depth WPS Office services"
+              ],
+              "featuresV2Cn": [
+                "专属龙虾",
+                "金山办公",
+                "多任务并行"
+              ],
+              "featuresV2En": [
+                "Exclusive Lobster",
+                "WPS Services",
+                "Parallel Multitasking"
+              ]
+            }
+          },
+          {
+            "planCode": "max:year",
+            "planName": "[REDACTED]",
+            "descriptionCn": "适合编程开发发烧友",
+            "descriptionEn": "For Coding Enthusiasts",
+            "descriptionV2Cn": "高强度开发",
+            "descriptionV2En": "Power Dev",
+            "planLevel": 1003,
+            "originalPrice": "7908.00",
+            "discountPrice": "6959.04",
+            "planPrice": "6959.04",
+            "currency": "CNY",
+            "tokenQuotaCn": "[REDACTED]",
+            "tokenQuotaEn": "[REDACTED]",
+            "periodInterval": 12,
+            "featuresCn": [
+              "支持 V2.6 全系列模型（文本旗舰 / 全模态 / 语音）",
+              "984,000,000,000 Credits 套餐年总量",
+              "20倍 Lite 套餐用量",
+              "支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗",
+              "TTS 系列模型限时免费使用"
+            ],
+            "featuresEn": [
+              "Supports the full V2.6 model lineup (text flagship / multimodal / speech)",
+              "984,000,000,000 Credits yearly package total",
+              "20x Lite Usage",
+              "Works with popular coding tools like OpenClaw、Codex、ClaudeCode、MiMoCode",
+              "20% off during off-peak hours(9:00 AM-5:00 PM PDT)",
+              "Free access to TTS models for a limited time"
+            ],
+            "featureItemsCn": [
+              {
+                "title": "支持 V2.6 全新旗舰模型",
+                "description": "文本模型 / 全模态 / 语音"
+              },
+              {
+                "title": "9840 亿 Credits",
+                "description": "= 20 x Lite"
+              },
+              {
+                "title": "支持主流编程框架",
+                "description": "OpenClaw / Codex / MiMo Claw 等"
+              },
+              {
+                "title": "TTS 模型免费",
+                "description": "限时免费使用"
+              },
+              {
+                "title": "夜间 0.8x 消耗",
+                "description": "00:00—08:00 · UTC+8"
+              },
+              {
+                "title": "畅快使用",
+                "description": "无周限额 · 无 5 小时限额"
+              }
+            ],
+            "featureItemsEn": [
+              {
+                "title": "V2.6 Flagship Model Access",
+                "description": "Text / Multimodal / Speech"
+              },
+              {
+                "title": "984 Billion Credits",
+                "description": "= 20 x Lite"
+              },
+              {
+                "title": "Coding Framework Support",
+                "description": "OpenClaw / Codex / MiMo Claw etc."
+              },
+              {
+                "title": "Free TTS Models",
+                "description": "Limited time offer"
+              },
+              {
+                "title": "Night 0.8x Usage",
+                "description": "00:00-08:00 -UTC+8"
+              },
+              {
+                "title": "Unlimited Usage",
+                "description": "No weekly cap·No 5-hour cap"
+              }
+            ],
+            "rightsCn": [
+              "模型\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "额度\t9840 亿 Credits",
+              "编程工具\t支持 OpenClaw、Codex、ClaudeCode、MiMoCode 等主流编程工具",
+              "其他权益\t非高峰期(北京时间每日00:00-08:00) 0.8x 系数消耗；TTS 系列模型限时免费使用"
+            ],
+            "rightsEn": [
+              "Models\tmimo-v2.6-pro、mimo-v2.6-flash、mimo-v2.5-pro、mimo-v2.5、mimo-v2.5-asr、mimo-v2.5-tts-voiceclone、mimo-v2.5-tts-voicedesign、mimo-v2.5-tts",
+              "Credits\t984 Billion Credits",
+              "Coding Tools\tSupport for mainstream coding tools including OpenClaw、Codex、ClaudeCode、MiMoCode and others",
+              "Other Benefits\t20% off during off-peak hours(9:00 AM-5:00 PM PDT); TTS models available for free use for a limited time"
+            ],
+            "active": true,
+            "purchased": false,
+            "subscribeType": "YEARLY",
+            "availableDiscount": null,
+            "overseasAvailableDiscount": null,
+            "newUserDiscountAmount": "948.96",
+            "inviteDiscount": null,
+            "claw": {
+              "originalPrice": "233.80",
+              "discountPrice": "233.80",
+              "featuresCn": [
+                "专属龙虾：7x24h",
+                "多任务并行",
+                "金山办公深度服务"
+              ],
+              "featuresEn": [
+                "Exclusive Lobster: 7x24-hour service",
+                "multi-tasking",
+                "in-depth WPS Office services"
+              ],
+              "featuresV2Cn": [
+                "专属龙虾",
+                "金山办公",
+                "多任务并行"
+              ],
+              "featuresV2En": [
+                "Exclusive Lobster",
+                "WPS Services",
+                "Parallel Multitasking"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/tokenPlan/detail",
+      "status": 200,
+      "headerNames": [
+        "_trace_id_",
+        "content-encoding",
+        "content-type",
+        "date",
+        "server",
+        "x-mife-upstream-status"
+      ],
+      "bodyRedacted": {
+        "code": 0,
+        "message": "",
+        "data": {
+          "planCode": "standard",
+          "planName": "[REDACTED]",
+          "currentPeriodEnd": "2026-10-23 23:59:59",
+          "expired": false,
+          "enableAutoRenew": false,
+          "autoRenewDiscount": null,
+          "hasAutoRenewSubscribed": true,
+          "clawEnabled": false,
+          "clawPeriodEnd": null,
+          "clawPurchased": false
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/tokenPlan/subscription/status",
+      "status": 200,
+      "headerNames": [
+        "_trace_id_",
+        "content-encoding",
+        "content-type",
+        "date",
+        "server",
+        "x-mife-upstream-status"
+      ],
+      "bodyRedacted": {
+        "code": 0,
+        "message": ""
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/tokenPlan/usage",
+      "status": 200,
+      "headerNames": [
+        "_trace_id_",
+        "content-encoding",
+        "content-type",
+        "date",
+        "server",
+        "x-mife-upstream-status"
+      ],
+      "bodyRedacted": {
+        "code": 0,
+        "message": "",
+        "data": {
+          "monthUsage": {
+            "percent": 0.4519,
+            "items": [
+              {
+                "name": "[REDACTED]",
+                "used": 4970910599,
+                "limit": 11000000000,
+                "percent": 0.4519
+              }
+            ]
+          },
+          "usage": {
+            "percent": 0.45,
+            "items": [
+              {
+                "name": "[REDACTED]",
+                "used": 4970910599,
+                "limit": 11000000000,
+                "percent": 0.45
+              },
+              {
+                "name": "[REDACTED]",
+                "used": 0,
+                "limit": 0,
+                "percent": 0
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/tokenPlan/detail",
+      "status": 200,
+      "headerNames": [
+        "_trace_id_",
+        "content-encoding",
+        "content-type",
+        "date",
+        "server",
+        "x-mife-upstream-status"
+      ],
+      "bodyRedacted": {
+        "code": 0,
+        "message": "",
+        "data": {
+          "planCode": "standard",
+          "planName": "[REDACTED]",
+          "currentPeriodEnd": "2026-10-23 23:59:59",
+          "expired": false,
+          "enableAutoRenew": false,
+          "autoRenewDiscount": null,
+          "hasAutoRenewSubscribed": true,
+          "clawEnabled": false,
+          "clawPeriodEnd": null,
+          "clawPurchased": false
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/tokenPlan/usage",
+      "status": 200,
+      "headerNames": [
+        "_trace_id_",
+        "content-encoding",
+        "content-type",
+        "date",
+        "server",
+        "x-mife-upstream-status"
+      ],
+      "bodyRedacted": {
+        "code": 0,
+        "message": "",
+        "data": {
+          "monthUsage": {
+            "percent": 0.4519,
+            "items": [
+              {
+                "name": "[REDACTED]",
+                "used": 4970910599,
+                "limit": 11000000000,
+                "percent": 0.4519
+              }
+            ]
+          },
+          "usage": {
+            "percent": 0.45,
+            "items": [
+              {
+                "name": "[REDACTED]",
+                "used": 4970910599,
+                "limit": 11000000000,
+                "percent": 0.45
+              },
+              {
+                "name": "[REDACTED]",
+                "used": 0,
+                "limit": 0,
+                "percent": 0
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://platform.xiaomimimo.com/api/v1/tokenPlan/detail",
+      "status": 200,
+      "headerNames": [
+        "_trace_id_",
+        "content-encoding",
+        "content-type",
+        "date",
+        "server",
+        "x-mife-upstream-status"
+      ],
+      "bodyRedacted": {
+        "code": 0,
+        "message": "",
+        "data": {
+          "planCode": "standard",
+          "planName": "[REDACTED]",
+          "currentPeriodEnd": "2026-10-23 23:59:59",
+          "expired": false,
+          "enableAutoRenew": false,
+          "autoRenewDiscount": null,
+          "hasAutoRenewSubscribed": true,
+          "clawEnabled": false,
+          "clawPeriodEnd": null,
+          "clawPurchased": false
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://platform.xiaomimimo.com/api/v1/usage/token-plan/list?[Q:api-platform_ph]",
+      "status": 200,
+      "headerNames": [
+        "_trace_id_",
+        "content-encoding",
+        "content-type",
+        "date",
+        "server",
+        "x-mife-upstream-status"
+      ],
+      "bodyRedacted": {
+        "code": 0,
+        "message": "",
+        "data": [
+          {
+            "date": "2026-09-28",
+            "model": "mimo-v2.6-pro",
+            "totalToken": 256428691,
+            "inputHitToken": 253023744,
+            "inputMissToken": 2943506,
+            "outputToken": 461441,
+            "requestCount": 652,
+            "inputAudioDuration": 0
+          },
+          {
+            "date": "2026-09-27",
+            "model": "mimo-v2.6-pro",
+            "totalToken": 176101225,
+            "inputHitToken": 174624256,
+            "inputMissToken": 1233347,
+            "outputToken": 243622,
+            "requestCount": 345,
+            "inputAudioDuration": 0
+          },
+          {
+            "date": "2026-09-26",
+            "model": "mimo-v2.6-pro",
+            "totalToken": 108705807,
+            "inputHitToken": 106286464,
+            "inputMissToken": 2163446,
+            "outputToken": 255897,
+            "requestCount": 342,
+            "inputAudioDuration": 0
+          },
+          {
+            "date": "2026-09-25",
+            "model": "mimo-v2.6-pro",
+            "totalToken": 106213721,
+            "inputHitToken": 105255552,
+            "inputMissToken": 833084,
+            "outputToken": 125085,
+            "requestCount": 146,
+            "inputAudioDuration": 0
+          },
+          {
+            "date": "2026-09-24",
+            "model": "mimo-v2.6-pro",
+            "totalToken": 79204288,
+            "inputHitToken": 77918080,
+            "inputMissToken": 1085224,
+            "outputToken": 200984,
+            "requestCount": 182,
+            "inputAudioDuration": 0
+          },
+          {
+            "date": "2026-09-23",
+            "model": "mimo-v2.6-flash",
+            "totalToken": 722753,
+            "inputHitToken": 81856,
+            "inputMissToken": 638808,
+            "outputToken": 2089,
+            "requestCount": 7,
+            "inputAudioDuration": 0
+          },
+          {
+            "date": "2026-09-23",
+            "model": "mimo-v2.6-pro",
+            "totalToken": 11599642,
+            "inputHitToken": 11272320,
+            "inputMissToken": 223578,
+            "outputToken": 103744,
+            "requestCount": 74,
+            "inputAudioDuration": 0
+          }
+        ]
+      }
+    }
+  ]
+}

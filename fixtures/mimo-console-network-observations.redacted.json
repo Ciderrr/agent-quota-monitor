@@ -1,0 +1,1582 @@
+{
+  "capturedAt": "2026-09-28T04:49:48.193Z",
+  "target": "https://platform.xiaomimimo.com/#/console/plan-manage",
+  "finalUrl": "https://account.xiaomi.com/fe/service/login/password?[Q:_group]&[Q:sid]&[Q:qs]&[Q:callback]&[Q:_sign]&[Q:serviceParam]&[Q:showActiveX]&[Q:theme]&[Q:needTheme]&[Q:bizDeviceType]&[Q:_locale]",
+  "counts": {
+    "total": 222,
+    "api": 4,
+    "js": 57,
+    "xhrLike": 6
+  },
+  "api": [
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/api/v1/userProfile",
+      "method": "GET",
+      "type": "fetch"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/api/v1/userProfile",
+      "status": 401,
+      "type": "fetch"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/api/v1/genLoginUrl?[Q:currentPath]",
+      "method": "GET",
+      "type": "document"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/api/v1/genLoginUrl?[Q:currentPath]",
+      "status": 302,
+      "type": "document"
+    }
+  ],
+  "sso": [
+    {
+      "phase": "request",
+      "url": "https://aistudio-cdn.xiaomimimo.com/xiaomimimo-static/mimo-qrcodes/qrs.json",
+      "method": "GET",
+      "type": "fetch"
+    },
+    {
+      "phase": "response",
+      "url": "https://aistudio-cdn.xiaomimimo.com/xiaomimimo-static/mimo-qrcodes/qrs.json",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "phase": "request",
+      "url": "https://account.xiaomi.com/pass/serviceLogin?[Q:callback]&[Q:sid]&[Q:_group]",
+      "method": "GET",
+      "type": "document"
+    },
+    {
+      "phase": "response",
+      "url": "https://account.xiaomi.com/pass/serviceLogin?[Q:callback]&[Q:sid]&[Q:_group]",
+      "status": 302,
+      "type": "document"
+    },
+    {
+      "phase": "request",
+      "url": "https://account.xiaomi.com/fe/service/login?[Q:_group]&[Q:sid]&[Q:qs]&[Q:callback]&[Q:_sign]&[Q:serviceParam]&[Q:showActiveX]&[Q:theme]&[Q:needTheme]&[Q:bizDeviceType]",
+      "method": "GET",
+      "type": "document"
+    },
+    {
+      "phase": "response",
+      "url": "https://account.xiaomi.com/fe/service/login?[Q:_group]&[Q:sid]&[Q:qs]&[Q:callback]&[Q:_sign]&[Q:serviceParam]&[Q:showActiveX]&[Q:theme]&[Q:needTheme]&[Q:bizDeviceType]",
+      "status": 200,
+      "type": "document"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/main.55154b3f.chunk.css",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/main.6a03bf94.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/react.fdcae0e7.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/runtime-main.299dc1db.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/babel-util.086158f7.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/crypto-util.7ebfad42.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/elastic.e9062100.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/axios.56e98e44.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/main.55154b3f.chunk.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/main.6a03bf94.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/elastic.e9062100.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/runtime-main.299dc1db.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/axios.56e98e44.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/crypto-util.7ebfad42.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/react.fdcae0e7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/babel-util.086158f7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/react-dom.adf081c1.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/miui-design.d20b2ec1.chunk.css",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/miui-design.9fee5107.chunk.js",
+      "method": "GET",
+      "type": "script"
+    }
+  ],
+  "js": [
+    "https://platform.xiaomimimo.com/static/main.7bd97cedb23f27bc.chunk.js",
+    "https://platform.xiaomimimo.com/static/766.a956ef82c1fee079.chunk.js",
+    "https://platform.xiaomimimo.com/static/870.a360903bb19f130e.chunk.js",
+    "https://platform.xiaomimimo.com/static/494.ea21a86f1027993d.chunk.js",
+    "https://platform.xiaomimimo.com/static/889.32c1eabc5e8f7c65.chunk.js",
+    "https://platform.xiaomimimo.com/static/150.0369bd2477849614.chunk.js",
+    "https://platform.xiaomimimo.com/static/932.96072af4600922e2.chunk.js",
+    "https://platform.xiaomimimo.com/static/307.f083ff78b35d533c.chunk.js",
+    "https://platform.xiaomimimo.com/static/385.8206cd3291a15aed.chunk.js",
+    "https://platform.xiaomimimo.com/static/758.3c1fb4cbbd83f52d.chunk.js",
+    "https://platform.xiaomimimo.com/static/109.5b1f3b67a5eca601.chunk.js",
+    "https://platform.xiaomimimo.com/static/279.96ddb6b3fb3e07eb.chunk.js",
+    "https://platform.xiaomimimo.com/static/937.69d7e6357a3cffff.chunk.js",
+    "https://platform.xiaomimimo.com/static/904.1a012e921be6d1ca.chunk.js",
+    "https://ssl-cdn.static.browser.mi-img.com/mistat-data/pubsub-v2/pubsub.js",
+    "https://ssl-cdn.static.browser.mi-img.com/mistat-data/onetrack/onetrack.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/main.6a03bf94.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/react.fdcae0e7.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/runtime-main.299dc1db.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/babel-util.086158f7.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/crypto-util.7ebfad42.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/elastic.e9062100.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/axios.56e98e44.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/react-dom.adf081c1.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/miui-design.9fee5107.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/lodash.e88e62f3.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/antd.23f102b2.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/yup-formik.b81d479a.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/formatJs.d4ea48cb.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/mi-util.c059f9a3.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/intl-util.70a2e4e0.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/690.66efe0a9.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/7009.f87446fe.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/5892.5d0761c6.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/7503.a6eaacac.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/5721.bfcaa3ca.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/desk.5fb03788.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/languages-zh_CN.d941cc0b.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/intl-polyfill.4e609b4d.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/intl-locale-data-zh.d6d06a09.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/intl-polyfill-zh_CN.a5eb31fd.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/3439.13e1fdc4.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/9227.7415cab7.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/2395.b515ed98.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/7381.30282b76.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/9044.50567cd8.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/538.b2e990f8.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/6437.d476f3a3.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/2618.bfa983b2.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/7743.04b0b984.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/DHome.efbaf589.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/695.8108a2e7.chunk.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/crypto.17efe504.chunk.js",
+    "https://captcha-cdn01.infosec.xiaomi.com/mcfe--captcha-static-sdk/prod/v3/static/js/v.js",
+    "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/fingerprintjs.e8cc27b2.chunk.js",
+    "https://verify.infosec.xiaomi.com/captcha/v3/config?[Q:clientType]&[Q:locale]&[Q:callback]",
+    "https://captcha-cdn01.infosec.xiaomi.com/mcfe--captcha-static-sdk/prod/v3/static/js/1.45/m.js"
+  ],
+  "all": [
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/",
+      "method": "GET",
+      "type": "document"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/",
+      "status": 200,
+      "type": "document"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/main.7bd97cedb23f27bc.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/main.b1ddfe23.chunk.css",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/max.dc77b7f93e688db3.svg",
+      "method": "GET",
+      "type": "image"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/MiSans-Medium.90bf93063efa3ccb.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/766.3b14b667.chunk.css",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/766.a956ef82c1fee079.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/main.b1ddfe23.chunk.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/max.dc77b7f93e688db3.svg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/MiSans-Medium.90bf93063efa3ccb.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/766.3b14b667.chunk.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/main.7bd97cedb23f27bc.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/766.a956ef82c1fee079.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/api/v1/userProfile",
+      "method": "GET",
+      "type": "fetch"
+    },
+    {
+      "phase": "request",
+      "url": "https://aistudio-cdn.xiaomimimo.com/xiaomimimo-static/mimo-qrcodes/qrs.json",
+      "method": "GET",
+      "type": "fetch"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/870.a360903bb19f130e.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/494.ea21a86f1027993d.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/889.32c1eabc5e8f7c65.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/150.0369bd2477849614.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/932.96072af4600922e2.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/307.f083ff78b35d533c.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/385.8206cd3291a15aed.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/758.3c1fb4cbbd83f52d.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/109.5b1f3b67a5eca601.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/279.7ce1cf08.chunk.css",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/279.96ddb6b3fb3e07eb.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/937.69d7e6357a3cffff.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/904.c73fae31.chunk.css",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/904.1a012e921be6d1ca.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "nullimage/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMuNDIxMzUgMTMuODAyTDMuMDA2MzYgMTMuNTIzMUgzLjAwNjM2TDMuNDIxMzUgMTMuODAyWk00LjM5MDUgMTAuNjk1OUwzLjg5MDUgMTAuNjkwNFYxMC42OTU5SDQuMzkwNVpNNC40MTA4NCA4LjgxNzgzTDQuOTEwODQgOC44MjMyNVY4LjgxNzgzSDQuNDEwODRaTTE2LjU4MzkgMTMuODE3MUwxNy4wMDQyIDEzLjU0NjNMMTcuMDA0MiAxMy41NDYzTDE2LjU4MzkgMTMuODE3MVpNMTUuNjUxMiAxMC42OTU5TDE1LjE1MTIgMTAuNjkwMlYxMC42OTU5SDE1LjY1MTJaTTE1LjY3MTYgOC45MTA4OUwxNi4xNzE2IDguOTE2NTlWOC45MTA4OUgxNS42NzE2Wk03Ljc3NzgyIDE3QzcuNTAxNjggMTcgNy4yNzc4MiAxNy4yMjM5IDcuMjc3ODIgMTcuNUM3LjI3NzgyIDE3Ljc3NjEgNy41MDE2OCAxOCA3Ljc3NzgyIDE4VjE3LjVWMTdaTTEyLjIyMjMgMThDMTIuNDk4NCAxOCAxMi43MjIzIDE3Ljc3NjEgMTIuNzIyMyAxNy41QzEyLjcyMjMgMTcuMjIzOSAxMi40OTg0IDE3IDEyLjIyMjMgMTdWMTcuNVYxOFpNMy40MjEzNSAxMy44MDJMMy44MzYzNSAxNC4wODA5QzQuMzY5NzQgMTMuMjg3MiA0Ljg5MDUgMTIuMTE1NCA0Ljg5MDUgMTAuNjk1OUg0LjM5MDVIMy44OTA1QzMuODkwNSAxMS44Njg1IDMuNDU5MjggMTIuODQ5MiAzLjAwNjM2IDEzLjUyMzFMMy40MjEzNSAxMy44MDJaTTQuMzkwNSAxMC42OTU5TDQuODkwNDcgMTAuNzAxM0w0LjkxMDgxIDguODIzMjVMNC40MTA4NCA4LjgxNzgzTDMuOTEwODcgOC44MTI0MkwzLjg5MDUzIDEwLjY5MDRMNC4zOTA1IDEwLjY5NTlaTTE2LjU4MzkgMTMuODE3MUwxNy4wMDQyIDEzLjU0NjNDMTYuNTY5OCAxMi44NzIxIDE2LjE1MTIgMTEuODgyNyAxNi4xNTEyIDEwLjY5NTlIMTUuNjUxMkgxNS4xNTEyQzE1LjE1MTIgMTIuMTE4OSAxNS42NTE5IDEzLjI5MzggMTYuMTYzNiAxNC4wODhMMTYuNTgzOSAxMy44MTcxWk0xNS42NTEyIDEwLjY5NTlMMTYuMTUxMiAxMC43MDE1TDE2LjE3MTUgOC45MTY1OUwxNS42NzE2IDguOTEwODlMMTUuMTcxNiA4LjkwNTJMMTUuMTUxMyAxMC42OTAyTDE1LjY1MTIgMTAuNjk1OVpNMTUuNjcxNiA4LjkxMDg5SDE2LjE3MTZDMTYuMTcxNiA1LjE1MzQ2IDEzLjQ2NDMgMiAxMCAyVjIuNVYzQzEyLjgwMDQgMyAxNS4xNzE2IDUuNTg3MDUgMTUuMTcxNiA4LjkxMDg5SDE1LjY3MTZaTTE2LjI0NDUgMTQuNjg3NVYxNS4xODc1QzE2LjcxNTEgMTUuMTg3NSAxNi45ODU4IDE0LjgyMTEgMTcuMDg4OSAxNC41NDc0QzE3LjE5NjIgMTQuMjYyMyAxNy4yMTM0IDEzLjg3MDkgMTcuMDA0MiAxMy41NDYzTDE2LjU4MzkgMTMuODE3MUwxNi4xNjM2IDE0LjA4OEMxNi4xNTkxIDE0LjA4MDkgMTYuMTY1MiAxNC4wODY1IDE2LjE2NjUgMTQuMTEyQzE2LjE2NzggMTQuMTM3NiAxNi4xNjMyIDE0LjE2OCAxNi4xNTMgMTQuMTk1QzE2LjE0MjMgMTQuMjIzMyAxNi4xMzI5IDE0LjIyOTEgMTYuMTQwOCAxNC4yMjIxQzE2LjE0NTggMTQuMjE3NyAxNi4xNTczIDE0LjIwODcgMTYuMTc2NCAxNC4yMDA4QzE2LjE5NjQgMTQuMTkyNiAxNi4yMiAxNC4xODc1IDE2LjI0NDUgMTQuMTg3NVYxNC42ODc1Wk00LjQxMDg0IDguODE3ODNINC45MTA4NEM0LjkxMDg0IDUuNTQ1MzkgNy4yNDUxOCAzIDEwIDNWMi41VjJDNi41ODEyNCAyIDMuOTEwODQgNS4xMTE4IDMuOTEwODQgOC44MTc4M0g0LjQxMDg0Wk0zLjc1NjQgMTQuNjg3NVYxNC4xODc1QzMuNzgxNTEgMTQuMTg3NSAzLjgwNTYxIDE0LjE5MjggMy44MjU4MyAxNC4yMDEzQzMuODQ1MTcgMTQuMjA5NCAzLjg1NjYzIDE0LjIxODUgMy44NjEyNyAxNC4yMjI3QzMuODY4NDQgMTQuMjI5MiAzLjg1ODE1IDE0LjIyMjEgMy44NDcwOCAxNC4xOTE4QzMuODM2NTUgMTQuMTYzIDMuODMyMDcgMTQuMTMwOSAzLjgzMzcgMTQuMTA0NEMzLjgzNTMzIDE0LjA3NzggMy44NDE3NSAxNC4wNzI5IDMuODM2MzUgMTQuMDgwOUwzLjQyMTM1IDEzLjgwMkwzLjAwNjM2IDEzLjUyMzFDMi43ODc1MSAxMy44NDg4IDIuODAyNjQgMTQuMjQ3IDIuOTA3NzcgMTQuNTM0OUMzLjAwODM4IDE0LjgxMDMgMy4yNzg1MiAxNS4xODc1IDMuNzU2NCAxNS4xODc1VjE0LjY4NzVaTTE2LjI0NDUgMTQuNjg3NVYxNC4xODc1SDMuNzU2NFYxNC42ODc1VjE1LjE4NzVIMTYuMjQ0NVYxNC42ODc1Wk03Ljc3NzgyIDE3LjVWMThIMTIuMjIyM1YxNy41VjE3SDcuNzc3ODJWMTcuNVoiIGZpbGw9ImJsYWNrIi8+Cjwvc3ZnPgo=",
+      "method": "GET",
+      "type": "image"
+    },
+    {
+      "phase": "response",
+      "url": "nullimage/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMuNDIxMzUgMTMuODAyTDMuMDA2MzYgMTMuNTIzMUgzLjAwNjM2TDMuNDIxMzUgMTMuODAyWk00LjM5MDUgMTAuNjk1OUwzLjg5MDUgMTAuNjkwNFYxMC42OTU5SDQuMzkwNVpNNC40MTA4NCA4LjgxNzgzTDQuOTEwODQgOC44MjMyNVY4LjgxNzgzSDQuNDEwODRaTTE2LjU4MzkgMTMuODE3MUwxNy4wMDQyIDEzLjU0NjNMMTcuMDA0MiAxMy41NDYzTDE2LjU4MzkgMTMuODE3MVpNMTUuNjUxMiAxMC42OTU5TDE1LjE1MTIgMTAuNjkwMlYxMC42OTU5SDE1LjY1MTJaTTE1LjY3MTYgOC45MTA4OUwxNi4xNzE2IDguOTE2NTlWOC45MTA4OUgxNS42NzE2Wk03Ljc3NzgyIDE3QzcuNTAxNjggMTcgNy4yNzc4MiAxNy4yMjM5IDcuMjc3ODIgMTcuNUM3LjI3NzgyIDE3Ljc3NjEgNy41MDE2OCAxOCA3Ljc3NzgyIDE4VjE3LjVWMTdaTTEyLjIyMjMgMThDMTIuNDk4NCAxOCAxMi43MjIzIDE3Ljc3NjEgMTIuNzIyMyAxNy41QzEyLjcyMjMgMTcuMjIzOSAxMi40OTg0IDE3IDEyLjIyMjMgMTdWMTcuNVYxOFpNMy40MjEzNSAxMy44MDJMMy44MzYzNSAxNC4wODA5QzQuMzY5NzQgMTMuMjg3MiA0Ljg5MDUgMTIuMTE1NCA0Ljg5MDUgMTAuNjk1OUg0LjM5MDVIMy44OTA1QzMuODkwNSAxMS44Njg1IDMuNDU5MjggMTIuODQ5MiAzLjAwNjM2IDEzLjUyMzFMMy40MjEzNSAxMy44MDJaTTQuMzkwNSAxMC42OTU5TDQuODkwNDcgMTAuNzAxM0w0LjkxMDgxIDguODIzMjVMNC40MTA4NCA4LjgxNzgzTDMuOTEwODcgOC44MTI0MkwzLjg5MDUzIDEwLjY5MDRMNC4zOTA1IDEwLjY5NTlaTTE2LjU4MzkgMTMuODE3MUwxNy4wMDQyIDEzLjU0NjNDMTYuNTY5OCAxMi44NzIxIDE2LjE1MTIgMTEuODgyNyAxNi4xNTEyIDEwLjY5NTlIMTUuNjUxMkgxNS4xNTEyQzE1LjE1MTIgMTIuMTE4OSAxNS42NTE5IDEzLjI5MzggMTYuMTYzNiAxNC4wODhMMTYuNTgzOSAxMy44MTcxWk0xNS42NTEyIDEwLjY5NTlMMTYuMTUxMiAxMC43MDE1TDE2LjE3MTUgOC45MTY1OUwxNS42NzE2IDguOTEwODlMMTUuMTcxNiA4LjkwNTJMMTUuMTUxMyAxMC42OTAyTDE1LjY1MTIgMTAuNjk1OVpNMTUuNjcxNiA4LjkxMDg5SDE2LjE3MTZDMTYuMTcxNiA1LjE1MzQ2IDEzLjQ2NDMgMiAxMCAyVjIuNVYzQzEyLjgwMDQgMyAxNS4xNzE2IDUuNTg3MDUgMTUuMTcxNiA4LjkxMDg5SDE1LjY3MTZaTTE2LjI0NDUgMTQuNjg3NVYxNS4xODc1QzE2LjcxNTEgMTUuMTg3NSAxNi45ODU4IDE0LjgyMTEgMTcuMDg4OSAxNC41NDc0QzE3LjE5NjIgMTQuMjYyMyAxNy4yMTM0IDEzLjg3MDkgMTcuMDA0MiAxMy41NDYzTDE2LjU4MzkgMTMuODE3MUwxNi4xNjM2IDE0LjA4OEMxNi4xNTkxIDE0LjA4MDkgMTYuMTY1MiAxNC4wODY1IDE2LjE2NjUgMTQuMTEyQzE2LjE2NzggMTQuMTM3NiAxNi4xNjMyIDE0LjE2OCAxNi4xNTMgMTQuMTk1QzE2LjE0MjMgMTQuMjIzMyAxNi4xMzI5IDE0LjIyOTEgMTYuMTQwOCAxNC4yMjIxQzE2LjE0NTggMTQuMjE3NyAxNi4xNTczIDE0LjIwODcgMTYuMTc2NCAxNC4yMDA4QzE2LjE5NjQgMTQuMTkyNiAxNi4yMiAxNC4xODc1IDE2LjI0NDUgMTQuMTg3NVYxNC42ODc1Wk00LjQxMDg0IDguODE3ODNINC45MTA4NEM0LjkxMDg0IDUuNTQ1MzkgNy4yNDUxOCAzIDEwIDNWMi41VjJDNi41ODEyNCAyIDMuOTEwODQgNS4xMTE4IDMuOTEwODQgOC44MTc4M0g0LjQxMDg0Wk0zLjc1NjQgMTQuNjg3NVYxNC4xODc1QzMuNzgxNTEgMTQuMTg3NSAzLjgwNTYxIDE0LjE5MjggMy44MjU4MyAxNC4yMDEzQzMuODQ1MTcgMTQuMjA5NCAzLjg1NjYzIDE0LjIxODUgMy44NjEyNyAxNC4yMjI3QzMuODY4NDQgMTQuMjI5MiAzLjg1ODE1IDE0LjIyMjEgMy44NDcwOCAxNC4xOTE4QzMuODM2NTUgMTQuMTYzIDMuODMyMDcgMTQuMTMwOSAzLjgzMzcgMTQuMTA0NEMzLjgzNTMzIDE0LjA3NzggMy44NDE3NSAxNC4wNzI5IDMuODM2MzUgMTQuMDgwOUwzLjQyMTM1IDEzLjgwMkwzLjAwNjM2IDEzLjUyMzFDMi43ODc1MSAxMy44NDg4IDIuODAyNjQgMTQuMjQ3IDIuOTA3NzcgMTQuNTM0OUMzLjAwODM4IDE0LjgxMDMgMy4yNzg1MiAxNS4xODc1IDMuNzU2NCAxNS4xODc1VjE0LjY4NzVaTTE2LjI0NDUgMTQuNjg3NVYxNC4xODc1SDMuNzU2NFYxNC42ODc1VjE1LjE4NzVIMTYuMjQ0NVYxNC42ODc1Wk03Ljc3NzgyIDE3LjVWMThIMTIuMjIyM1YxNy41VjE3SDcuNzc3ODJWMTcuNVoiIGZpbGw9ImJsYWNrIi8+Cjwvc3ZnPgo=",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "phase": "request",
+      "url": "https://ssl-cdn.static.browser.mi-img.com/mistat-data/pubsub-v2/pubsub.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/api/v1/userProfile",
+      "status": 401,
+      "type": "fetch"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/494.ea21a86f1027993d.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/932.96072af4600922e2.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/889.32c1eabc5e8f7c65.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/279.7ce1cf08.chunk.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/870.a360903bb19f130e.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/904.c73fae31.chunk.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/307.f083ff78b35d533c.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/150.0369bd2477849614.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://ssl-cdn.static.browser.mi-img.com/mistat-data/pubsub-v2/pubsub.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "method": "POST",
+      "type": "ping"
+    },
+    {
+      "phase": "response",
+      "url": "https://aistudio-cdn.xiaomimimo.com/xiaomimimo-static/mimo-qrcodes/qrs.json",
+      "status": 200,
+      "type": "fetch"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/758.3c1fb4cbbd83f52d.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/385.8206cd3291a15aed.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "status": 200,
+      "type": "ping"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/109.5b1f3b67a5eca601.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/279.96ddb6b3fb3e07eb.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/937.69d7e6357a3cffff.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/904.1a012e921be6d1ca.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/gongzhonghao.0b2d09008933f5c7.jpg",
+      "method": "GET",
+      "type": "image"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/static/favicon.5c3d18dc51d9cbea.png",
+      "method": "GET",
+      "type": "image"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/favicon.png",
+      "method": "GET",
+      "type": "other"
+    },
+    {
+      "phase": "request",
+      "url": "https://platform.xiaomimimo.com/api/v1/genLoginUrl?[Q:currentPath]",
+      "method": "GET",
+      "type": "document"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/gongzhonghao.0b2d09008933f5c7.jpg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/static/favicon.5c3d18dc51d9cbea.png",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/favicon.png",
+      "status": 200,
+      "type": "other"
+    },
+    {
+      "phase": "request",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "method": "POST",
+      "type": "ping"
+    },
+    {
+      "phase": "response",
+      "url": "https://platform.xiaomimimo.com/api/v1/genLoginUrl?[Q:currentPath]",
+      "status": 302,
+      "type": "document"
+    },
+    {
+      "phase": "request",
+      "url": "https://account.xiaomi.com/pass/serviceLogin?[Q:callback]&[Q:sid]&[Q:_group]",
+      "method": "GET",
+      "type": "document"
+    },
+    {
+      "phase": "response",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "status": 200,
+      "type": "ping"
+    },
+    {
+      "phase": "response",
+      "url": "https://account.xiaomi.com/pass/serviceLogin?[Q:callback]&[Q:sid]&[Q:_group]",
+      "status": 302,
+      "type": "document"
+    },
+    {
+      "phase": "request",
+      "url": "https://account.xiaomi.com/fe/service/login?[Q:_group]&[Q:sid]&[Q:qs]&[Q:callback]&[Q:_sign]&[Q:serviceParam]&[Q:showActiveX]&[Q:theme]&[Q:needTheme]&[Q:bizDeviceType]",
+      "method": "GET",
+      "type": "document"
+    },
+    {
+      "phase": "response",
+      "url": "https://account.xiaomi.com/fe/service/login?[Q:_group]&[Q:sid]&[Q:qs]&[Q:callback]&[Q:_sign]&[Q:serviceParam]&[Q:showActiveX]&[Q:theme]&[Q:needTheme]&[Q:bizDeviceType]",
+      "status": 200,
+      "type": "document"
+    },
+    {
+      "phase": "request",
+      "url": "https://font.sec.miui.com/font/css?[Q:family]&[Q:display]",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/main.55154b3f.chunk.css",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://ssl-cdn.static.browser.mi-img.com/mistat-data/onetrack/onetrack.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/main.6a03bf94.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/react.fdcae0e7.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/runtime-main.299dc1db.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/babel-util.086158f7.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/crypto-util.7ebfad42.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/elastic.e9062100.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/axios.56e98e44.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/main.55154b3f.chunk.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/main.6a03bf94.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/elastic.e9062100.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/runtime-main.299dc1db.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/axios.56e98e44.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/crypto-util.7ebfad42.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/react.fdcae0e7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/babel-util.086158f7.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/react-dom.adf081c1.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/miui-design.d20b2ec1.chunk.css",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/miui-design.9fee5107.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/lodash.e88e62f3.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/antd.0f62a727.chunk.css",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/antd.23f102b2.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/yup-formik.b81d479a.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/formatJs.d4ea48cb.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/mi-util.c059f9a3.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/intl-util.70a2e4e0.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/690.66efe0a9.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/7009.f87446fe.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/5892.5d0761c6.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/7503.a6eaacac.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/5721.ec0d9d4f.chunk.css",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/5721.bfcaa3ca.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/desk.ba36b4ea.chunk.css",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/desk.5fb03788.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://ssl-cdn.static.browser.mi-img.com/mistat-data/onetrack/onetrack.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "method": "POST",
+      "type": "ping"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/miui-design.d20b2ec1.chunk.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/react-dom.adf081c1.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/antd.0f62a727.chunk.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/intl-util.70a2e4e0.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/mi-util.c059f9a3.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/yup-formik.b81d479a.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/7009.f87446fe.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/5721.bfcaa3ca.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/desk.5fb03788.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/5892.5d0761c6.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "status": 200,
+      "type": "ping"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/miui-design.9fee5107.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/7503.a6eaacac.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/lodash.e88e62f3.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/antd.23f102b2.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/formatJs.d4ea48cb.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/desk.ba36b4ea.chunk.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/5721.ec0d9d4f.chunk.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/690.66efe0a9.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://font.sec.miui.com/font/css?[Q:family]&[Q:display]",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/languages-zh_CN.d941cc0b.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/intl-polyfill.4e609b4d.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://account.xiaomi.com/pass2/config?[Q:key]&[Q:key]&[Q:_locale]&[Q:sid]&[Q:_uRegion]",
+      "method": "GET",
+      "type": "xhr"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/favicon_new.ico",
+      "method": "GET",
+      "type": "other"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/languages-zh_CN.d941cc0b.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/intl-polyfill.4e609b4d.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/favicon_new.ico",
+      "status": 200,
+      "type": "other"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/intl-locale-data-zh.d6d06a09.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/intl-polyfill-zh_CN.a5eb31fd.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://account.xiaomi.com/pass2/config?[Q:key]&[Q:key]&[Q:_locale]&[Q:sid]&[Q:_uRegion]",
+      "status": 200,
+      "type": "xhr"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/intl-locale-data-zh.d6d06a09.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/intl-polyfill-zh_CN.a5eb31fd.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/3439.13e1fdc4.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/9227.7415cab7.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/2395.b515ed98.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/7381.30282b76.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/8839.8b9f5bc9.chunk.css",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/9044.50567cd8.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/538.b2e990f8.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/6437.d476f3a3.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/2618.1c6982a6.chunk.css",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/2618.bfa983b2.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/7743.04b0b984.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/DHome.3a5539f4.chunk.css",
+      "method": "GET",
+      "type": "stylesheet"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/DHome.efbaf589.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/3439.13e1fdc4.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/8839.8b9f5bc9.chunk.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/2395.b515ed98.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/7381.30282b76.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/538.b2e990f8.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/2618.1c6982a6.chunk.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/css/DHome.3a5539f4.chunk.css",
+      "status": 200,
+      "type": "stylesheet"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/6437.d476f3a3.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/9044.50567cd8.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/7743.04b0b984.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/DHome.efbaf589.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/9227.7415cab7.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/2618.bfa983b2.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/media/banner.92c693b4..jpg",
+      "method": "GET",
+      "type": "image"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/media/banner.92c693b4..jpg",
+      "status": 200,
+      "type": "image"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/695.8108a2e7.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/crypto.17efe504.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "method": "POST",
+      "type": "ping"
+    },
+    {
+      "phase": "request",
+      "url": "https://captcha-cdn01.infosec.xiaomi.com/mcfe--captcha-static-sdk/prod/v3/static/js/v.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/fingerprintjs.e8cc27b2.chunk.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "method": "POST",
+      "type": "ping"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/695.8108a2e7.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/crypto.17efe504.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn.web-global.fds.api.mi-img.com/mcfe--mi-account/static/static/js/fingerprintjs.e8cc27b2.chunk.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "response",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "status": 200,
+      "type": "ping"
+    },
+    {
+      "phase": "response",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "status": 200,
+      "type": "ping"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/500/lt.b16e5debfe3729dc.5.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/500/cs.368bba26dceab3f2.11.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/500/cs.d5d63c06c4ee8ca8.3.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/500/cs.507aeb5f5cc9de3a.2.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/500/cs.4310947b63d7f2af.0.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/lt.901de8df15597807.5.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.b3063c48c56d5c40.4.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.1656bbfbf2b66170.3.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.e37f98eab1bffea9.1.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.5dd139a4b434052f.0.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.5538fe618f9d7a60.5.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/lt.7dcf87c3c9fcc1be.0.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/500/cs.21c946adc24fa32b.4.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.4ff84f9234f03a2b.7.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.4173509397f8aa3a.2.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.e2f46f4ad5ed6851.8.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.246e8ea5197d9c54.6.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "request",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.8ee276e30de7c0fd.11.woff2",
+      "method": "GET",
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/500/lt.b16e5debfe3729dc.5.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/500/cs.368bba26dceab3f2.11.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/500/cs.d5d63c06c4ee8ca8.3.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/lt.901de8df15597807.5.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/500/cs.21c946adc24fa32b.4.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.e37f98eab1bffea9.1.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.5dd139a4b434052f.0.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.b3063c48c56d5c40.4.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/500/cs.4310947b63d7f2af.0.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/lt.7dcf87c3c9fcc1be.0.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.4173509397f8aa3a.2.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.e2f46f4ad5ed6851.8.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.246e8ea5197d9c54.6.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.1656bbfbf2b66170.3.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.5538fe618f9d7a60.5.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/500/cs.507aeb5f5cc9de3a.2.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.4ff84f9234f03a2b.7.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://cdn-file.hyperos.mi.com/mi-font-service/misans/400/cs.8ee276e30de7c0fd.11.woff2",
+      "status": 200,
+      "type": "font"
+    },
+    {
+      "phase": "response",
+      "url": "https://captcha-cdn01.infosec.xiaomi.com/mcfe--captcha-static-sdk/prod/v3/static/js/v.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://verify.infosec.xiaomi.com/captcha/v3/config?[Q:clientType]&[Q:locale]&[Q:callback]",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "method": "POST",
+      "type": "ping"
+    },
+    {
+      "phase": "response",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "status": 200,
+      "type": "ping"
+    },
+    {
+      "phase": "response",
+      "url": "https://verify.infosec.xiaomi.com/captcha/v3/config?[Q:clientType]&[Q:locale]&[Q:callback]",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://captcha-cdn01.infosec.xiaomi.com/mcfe--captcha-static-sdk/prod/v3/static/js/1.45/m.js",
+      "method": "GET",
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "method": "POST",
+      "type": "ping"
+    },
+    {
+      "phase": "response",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "status": 200,
+      "type": "ping"
+    },
+    {
+      "phase": "response",
+      "url": "https://captcha-cdn01.infosec.xiaomi.com/mcfe--captcha-static-sdk/prod/v3/static/js/1.45/m.js",
+      "status": 200,
+      "type": "script"
+    },
+    {
+      "phase": "request",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "method": "POST",
+      "type": "ping"
+    },
+    {
+      "phase": "response",
+      "url": "https://tracking.miui.com/track/v4/js_a",
+      "status": 200,
+      "type": "ping"
+    }
+  ]
+}

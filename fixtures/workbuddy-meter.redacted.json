@@ -1,0 +1,102 @@
+{
+  "_note": "WorkBuddy /profile/plans-usage 接口实测结构（2026-09-30 用户 DevTools 手动捕获，脱敏：requestId/PackageCode 后缀/Uin/AppId/AccountId/DealName/ResourceId 已替换；数值保留）。采集工具：Network→Copy all URLs + Response。",
+  "endpoints": {
+    "summary": "GET https://www.workbuddy.cn/billing/meter/get-user-resource-summary",
+    "usage": "GET https://www.workbuddy.cn/billing/meter/get-user-request-usage",
+    "paid": "GET https://www.workbuddy.cn/billing/meter/get-user-resource-paid-packages",
+    "free": "GET https://www.workbuddy.cn/billing/meter/get-user-resource-free-packages",
+    "auth": "GET https://www.workbuddy.cn/console/accounts （同源 Cookie 会话；Keycloak SSO /auth/realms/copilot，client_id=console）"
+  },
+  "get_user_resource_summary": {
+    "code": 0,
+    "msg": "OK",
+    "requestId": "[REDACTED]",
+    "data": {
+      "Packages": [
+        {
+          "PackageCode": "TCACA_code_007_[REDACTED]",
+          "CycleTotalCapacity": "4210",
+          "CycleRemainCapacity": "4210",
+          "CycleUsedCapacity": "0",
+          "CycleFrozenCapacity": "0",
+          "CapacityUnit": "credits",
+          "TotalCount": 28
+        },
+        {
+          "PackageCode": "TCACA_code_008_[REDACTED]",
+          "CycleTotalCapacity": "500",
+          "CycleRemainCapacity": "497.91000001",
+          "CycleUsedCapacity": "2.08999999",
+          "CycleFrozenCapacity": "0",
+          "CapacityUnit": "credits",
+          "TotalCount": 1
+        }
+      ],
+      "SubscriptionPackageCode": "",
+      "SubscriptionPackageName": "体验版",
+      "IsPaidUser": false,
+      "IsProtectedPriceUser": false
+    }
+  },
+  "get_user_request_usage": {
+    "code": 0,
+    "msg": "OK",
+    "requestId": "[REDACTED]",
+    "data": { "total": 0, "data": [] }
+  },
+  "get_user_resource_paid_packages": {
+    "code": 0,
+    "msg": "OK",
+    "data": { "Accounts": [], "TotalCount": 0 }
+  },
+  "get_user_resource_free_packages_sample": {
+    "_note": "free 包明细（2007 行 / 29 个子账号）；每个签到奖励为一个 Account，summary 已按 PackageCode 聚合。此处仅保留 2 个样本。",
+    "code": 0,
+    "data": {
+      "Accounts": [
+        {
+          "AccountId": 0,
+          "Uin": "[REDACTED]",
+          "AppId": 0,
+          "DealName": "[REDACTED]",
+          "CapacityType": 1,
+          "CapacityUnit": "credits",
+          "CycleStartTime": "2026-09-01 16:54:01",
+          "CycleEndTime": "2026-10-01 16:54:00",
+          "FeeType": 1,
+          "Region": "ap-others",
+          "OriginUnit": "credits",
+          "PackageCode": "TCACA_code_007_[REDACTED]",
+          "PackageName": "CodeBuddy个人版国内运营裂变包",
+          "ProductCode": "p_tcaca",
+          "ProductName": "腾讯云代码助手",
+          "SubProductCode": "sp_tcaca_codebuddyide_bonus_pack",
+          "SubProductName": "腾讯云代码助手 (IDE) - 赠送包",
+          "CapacityRemain": 0,
+          "CapacityUsed": 0,
+          "CycleCapacityRemain": 1500,
+          "CycleCapacitySize": 1500,
+          "ResourceId": "[REDACTED]",
+          "ResourceType": "2",
+          "Status": 0,
+          "AccountAttributes": [
+            { "Key": "payerType", "Value": "[REDACTED]", "Type": 5 },
+            { "Key": "grantReason", "Value": "官方活动发放", "Type": 0 }
+          ]
+        },
+        {
+          "AccountId": 0,
+          "Uin": "[REDACTED]",
+          "PackageCode": "TCACA_code_007_[REDACTED]",
+          "PackageName": "CodeBuddy个人版国内运营裂变包",
+          "CapacityUnit": "credits",
+          "CycleCapacityRemain": 100,
+          "CycleCapacitySize": 100,
+          "CycleStartTime": "2026-09-02 17:00:27",
+          "CycleEndTime": "2026-10-02 17:00:26",
+          "Status": 0
+        }
+      ]
+    }
+  }
+}

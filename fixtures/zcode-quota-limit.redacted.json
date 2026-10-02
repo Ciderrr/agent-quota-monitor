@@ -1,0 +1,96 @@
+{
+  "capturedAt": "2026-09-28T03:58:37.600Z",
+  "source": {
+    "credentialSource": "~/.zcode/v2/credentials.json (entries account-provider:coding-plan:account:*:api-key, entry names & key values redacted)",
+    "endpoint": "GET {base}/api/monitor/usage/quota/limit",
+    "baseByFamily": {
+      "zai": "https://api.z.ai",
+      "bigmodel": "https://open.bigmodel.cn"
+    },
+    "note": "read-only validation; one GET per discovered key (+ one Bearer comparison per failing family)"
+  },
+  "redaction": {
+    "applied": true,
+    "note": "keys/jwts/uuids/long numeric ids removed; epoch-ms timestamps (13 digits) and quota numbers preserved"
+  },
+  "attempts": [
+    {
+      "entry": "[REDACTED:bigmodel/team]",
+      "family": "bigmodel",
+      "host": "open.bigmodel.cn",
+      "authStyle": "raw-key (no Bearer prefix)",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "body": {
+        "code": 401,
+        "msg": "令牌已过期或验证不正确",
+        "success": false
+      }
+    },
+    {
+      "entry": "[REDACTED:bigmodel/team]",
+      "family": "bigmodel",
+      "host": "open.bigmodel.cn",
+      "authStyle": "bearer (对比用)",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "body": {
+        "code": 401,
+        "msg": "令牌已过期或验证不正确",
+        "success": false
+      }
+    },
+    {
+      "entry": "[REDACTED:zai/team]",
+      "family": "zai",
+      "host": "api.z.ai",
+      "authStyle": "raw-key (no Bearer prefix)",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "body": {
+        "code": 401,
+        "msg": "token expired or incorrect",
+        "success": false
+      }
+    },
+    {
+      "entry": "[REDACTED:zai/team]",
+      "family": "zai",
+      "host": "api.z.ai",
+      "authStyle": "bearer (对比用)",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "body": {
+        "code": 401,
+        "msg": "token expired or incorrect",
+        "success": false
+      }
+    },
+    {
+      "entry": "[REDACTED:bigmodel/individual]",
+      "family": "bigmodel",
+      "host": "open.bigmodel.cn",
+      "authStyle": "raw-key (no Bearer prefix)",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "body": {
+        "code": 401,
+        "msg": "令牌已过期或验证不正确",
+        "success": false
+      }
+    },
+    {
+      "entry": "[REDACTED:bigmodel/individual]",
+      "family": "bigmodel",
+      "host": "open.bigmodel.cn",
+      "authStyle": "bearer (对比用)",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "body": {
+        "code": 401,
+        "msg": "令牌已过期或验证不正确",
+        "success": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "capturedAt": "2026-09-28T04:00:13.353Z",
+  "source": {
+    "credentialSource": "~/.zcode/v2/credentials.json key 'oauth:bigmodel:access_token' (value redacted)",
+    "endpoint": "GET open.bigmodel.cn/api/monitor/usage/quota/limit",
+    "purpose": "supplementary: does the monitor endpoint accept the locally available OAuth session token?"
+  },
+  "redaction": {
+    "applied": true,
+    "note": "token values removed; quota numbers preserved"
+  },
+  "attempts": [
+    {
+      "credential": "oauth:bigmodel:access_token (value redacted)",
+      "host": "open.bigmodel.cn",
+      "authStyle": "raw-token (no prefix)",
+      "httpStatus": 200,
+      "body": {
+        "code": 401,
+        "msg": "令牌已过期或验证不正确",
+        "success": false
+      }
+    },
+    {
+      "credential": "oauth:bigmodel:access_token (value redacted)",
+      "host": "open.bigmodel.cn",
+      "authStyle": "bearer",
+      "httpStatus": 200,
+      "body": {
+        "code": 401,
+        "msg": "令牌已过期或验证不正确",
+        "success": false
+      }
+    }
+  ]
+}
