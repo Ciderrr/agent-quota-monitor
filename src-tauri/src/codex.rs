@@ -442,7 +442,8 @@ pub async fn fetch_via_app_server() -> Snapshot {
     };
     let params = json!({
         "supportsLunaReserve": false,
-        "excludeResetCreditDetails": true
+        // 重置积分明细（含 expiresAt 过期时间）必须拉取：UI 重置卡要显示具体日期（用户反馈）
+        "excludeResetCreditDetails": false
     });
     match call_once(&bin, "account/rateLimits/read", params).await {
         Ok(result) => map_rate_limits(&result),

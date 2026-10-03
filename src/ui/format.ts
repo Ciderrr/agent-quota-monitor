@@ -26,6 +26,15 @@ export function updatedAgo(iso: string, lang: "zh" | "en"): string {
   return label;
 }
 
+/** 绝对日期（本地时区）：重置卡等处显示 "2026.10.5 14:30" */
+export function formatDate(iso: string | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export function compact(n: number): string {
   if (n >= 1e9) return `${(n / 1e9).toFixed(n % 1e9 === 0 ? 0 : 1)}B`;
   if (n >= 1e6) return `${(n / 1e6).toFixed(n % 1e6 === 0 ? 0 : 1)}M`;

@@ -4,13 +4,28 @@
 // - 输出脱敏 fixture；绝不打印/写入任何 token；不写 auth.json；不调用 consume/refresh 方法
 // 用法: node scripts/codex-appserver-probe.mjs <输出fixture路径>
 import { spawn } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const OUT = process.argv[2];
 if (!OUT) { console.error("usage: node codex-appserver-probe.mjs <fixture-out>"); process.exit(2); }
 
-const CODEX = join(process.env.LOCALAPPDATA, "OpenAI", "Codex", "bin", "faa963e871dd422c", "codex.exe");
+// 动态解析本机 codex.exe（版本目录会随 CLI 升级变化，勿硬编码）：
+// CODEX_PATH → 本机 OpenAI\Codex\bin\<ver>\codex.exe → managed runtime → PATH
+function resolveCodex() {
+  if (process.env.CODEX_PATH && existsSync(process.env.CODEX_PATH)) return process.env.CODEX_PATH;
+  const bin = join(process.env.LOCALAPPDATA, "OpenAI", "Codex", "bin");
+  if (existsSync(bin)) {
+    for (const ent of readdirSync(bin)) {
+      const cand = join(bin, ent, "codex.exe");
+      if (existsSync(cand)) return cand;
+    }
+  }
+  const managed = join(process.env.LOCALAPPDATA, "AgentQuotaMonitor", "runtimes", "codex", "0.158.0", "codex.exe");
+  if (existsSync(managed)) return managed;
+  return "codex.exe";
+}
+const CODEX = resolveCodex();
 
 // ---- 脱敏 ----
 const SAFE_ID_KEYS = new Set(["limitid", "plantype", "resettype", "status", "normalmodelslug", "limitname", "type", "unit", "kind"]);

@@ -7,7 +7,7 @@ import { isTauri } from "../bridge";
 import { useI18n } from "../i18n";
 import {
   bucketLabel, levelOf, timeUntil, updatedAgo, money, compact,
-  pickPrimaryBucket, isAggregateBucket,
+  pickPrimaryBucket, isAggregateBucket, formatDate,
 } from "../ui/format";
 import { IconBack, IconRefresh, IconExternal, IconHistory, IconCollapse, IconSettings } from "../ui/icons";
 import { GlassSurface } from "../ui/GlassSurface";
@@ -339,7 +339,7 @@ export function ProviderDetail({ snapshot: s, onOpenSettings }: { snapshot: Prov
               {r.items.map((it, i) => (
                 <div className="kv" key={i}>
                   <span>{it.titleRaw ?? "—"}</span>
-                  <b>{it.expiresAt ? t("reset.expires", { time: timeUntil(it.expiresAt, lang) }) : "—"}</b>
+                  <b>{it.expiresAt ? `${formatDate(it.expiresAt)} · ${t("reset.expires", { time: timeUntil(it.expiresAt, lang) })}` : "—"}</b>
                 </div>
               ))}
             </div>
