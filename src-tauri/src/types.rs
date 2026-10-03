@@ -30,13 +30,21 @@ pub enum Unit {
 pub struct QuotaBucket {
     pub id: String,
     pub label_key: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub label_raw: Option<String>,
     pub period_type: PeriodType,
     pub unit: Unit,
+    // Option 字段缺失即缺数据：序列化成 null 会被前端 `!== undefined` 误当成有效值，
+    // 渲染出无意义的 "0/0"（用户实测），故跳过 null 字段
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub total: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub used: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub remaining: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub remaining_percent: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reset_at: Option<String>,
     pub source: String,
     pub confidence: String,

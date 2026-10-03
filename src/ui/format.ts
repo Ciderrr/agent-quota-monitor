@@ -58,7 +58,8 @@ export function isAggregateBucket(b: QuotaBucket): boolean {
   return b.id.endsWith("/all");
 }
 
-function bucketPriority(b: QuotaBucket): number {
+/** 展示优先级（数值越小越靠前）：聚合桶 > 5h > 月度 > 日 > 周/账期 > 其他 > 积分；reserve 垫底 */
+export function bucketPriority(b: QuotaBucket): number {
   if (isAggregateBucket(b)) return -1;
   if (isReserveBucket(b)) return 90;
   switch (b.periodType.kind) {
@@ -114,7 +115,39 @@ export function primarySub(s: { quotaBuckets: QuotaBucket[]; balances: Balance[]
   return "";
 }
 
+/** 详情页/列表的桶排序：与代表桶同优先级语义（用户实测：gpt-reserve 不该排在最上面） */
+export function sortBucketsForDisplay(buckets: QuotaBucket[]): QuotaBucket[] {
+  return buckets
+    .map((b, i) => ({ b, i }))
+    .sort((a, o) => {
+      const pa = bucketPriority(a.b);
+      const pb = bucketPriority(o.b);
+      if (pa !== pb) return pa - pb;
+      return a.i - o.i; // 同优先级保持原始顺序（稳定）
+    })
+    .map((x) => x.b);
+}
+
+/** 桶标签：让用户一眼看出是哪个限额。周期语义（5小时限额/周限额）优先于通用内部名
+ *  （codex）；但 labelRaw 有专属语义（gpt-reserve、积分包名）时优先保留——gpt-reserve
+ *  的窗口恰好也是周窗，纯周期命名会出现两个"周限额"（用户实测反馈） */
+const GENERIC_LIMIT_RE = /^(codex)$/i;
+
 export function bucketLabel(b: QuotaBucket, t: (k: any, p?: any) => string): string {
+  let periodName: string | null = null;
+  const kind = b.periodType.kind;
+  if (kind === "rolling") {
+    const m = b.periodType.windowMins;
+    if (m === 300) periodName = t("bucket.5h");
+    else if (m > 0 && m % 1440 === 0) periodName = t("bucket.days_limit", { d: m / 1440 });
+    else if (m > 0 && m % 60 === 0) periodName = t("bucket.hours_limit", { h: m / 60 });
+    else periodName = t("bucket.hours_limit", { h: (m / 60).toFixed(1) });
+  } else if (kind === "weekly") periodName = t("bucket.weekly");
+  else if (kind === "monthly") periodName = t("bucket.monthly");
+  else if (kind === "daily") periodName = t("bucket.daily");
+  else if (kind === "billing_cycle") periodName = t("bucket.cycle");
+  if (b.labelRaw && !GENERIC_LIMIT_RE.test(b.labelRaw) && b.labelRaw !== periodName) return b.labelRaw;
+  if (periodName) return periodName;
   if (b.labelRaw) return b.labelRaw;
   return t(b.labelKey);
 }

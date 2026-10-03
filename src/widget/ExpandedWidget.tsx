@@ -7,7 +7,7 @@ import { isTauri } from "../bridge";
 import { useI18n } from "../i18n";
 import {
   bucketLabel, levelOf, timeUntil, updatedAgo, money, compact,
-  pickPrimaryBucket, isAggregateBucket, formatDate,
+  pickPrimaryBucket, isAggregateBucket, formatDate, sortBucketsForDisplay,
 } from "../ui/format";
 import { IconBack, IconRefresh, IconExternal, IconHistory, IconCollapse, IconSettings } from "../ui/icons";
 import { GlassSurface } from "../ui/GlassSurface";
@@ -169,7 +169,7 @@ function OverviewBlock({ s, onOpen }: { s: ProviderSnapshot; onOpen: () => void 
   // ②3：存在聚合桶（积分包合计）时，列表行只展示合计；逐包明细留给详情页
   const rest = buckets.some(isAggregateBucket)
     ? []
-    : buckets.filter((b) => b !== primary);
+    : sortBucketsForDisplay(buckets.filter((b) => b !== primary));
   const bal = s.balances[0];
   const hasErr = s.connectionState === "not_connected" || s.connectionState === "auth_required" || s.connectionState === "unsupported" || s.connectionState === "disconnected";
 
@@ -327,8 +327,8 @@ export function ProviderDetail({ snapshot: s, insights, onOpenSettings }: { snap
         </div>
       )}
 
-      {/* v0.2：逐桶展示 + 燃烧预测行（有预测才显示，绝不硬造） */}
-      {s.quotaBuckets.filter((b) => !isAggregateBucket(b)).map((b) => {
+      {/* v0.2：逐桶展示（按显示优先级排序：5h > 周 > reserve 垫底）+ 燃烧预测行（有预测才显示，绝不硬造） */}
+      {sortBucketsForDisplay(s.quotaBuckets.filter((b) => !isAggregateBucket(b))).map((b) => {
         const pred = insights?.predictions?.[s.providerId]?.find((p) => p.bucketId === b.id);
         return (
           <div key={b.id}>
@@ -455,7 +455,7 @@ function Bucket({ b }: { b: QuotaBucket }) {
       <div className="bucket-main">
         <span className={`bucket-num num ${lvl !== "normal" ? lvl + "-text" : ""}`}>{showNum}</span>
         {!isPercent && b.unit.kind === "credits" && <small className="pb-plan">Credits</small>}
-        {b.used !== undefined && b.total !== undefined && (
+        {b.used != null && b.total != null && (
           <span className="pb-plan num">{compact(b.used)} / {compact(b.total)}</span>
         )}
       </div>
