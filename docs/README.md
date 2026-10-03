@@ -11,6 +11,7 @@
 | 文档 | 用途（何时读） |
 |---|---|
 | [PRODUCT_SPEC.md](PRODUCT_SPEC.md) | 产品边界：做什么、明确不做什么、目标用户与成功标准——范围有争议时查这里 |
+| [PREDICTION_ALGORITHM.md](PREDICTION_ALGORITHM.md) | 燃烧预测算法机制：新近加权回归、重置截断、四道防误报门槛与置信度分级 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 动手改代码前先读：模块怎么分、数据怎么流、为什么 Rust 侧拥有全部 Provider 知识 |
 | [DATA_MODEL.md](DATA_MODEL.md) | 涉及快照/额度桶/历史表字段的改动前查：字段语义、动态桶降级规则、置信度 |
 | [PROVIDER_INTERFACE.md](PROVIDER_INTERFACE.md) | 新增或修改 Provider 时照此契约实现：适配器 trait、connectionMethods、IPC 面 |
