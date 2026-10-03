@@ -360,11 +360,24 @@ export function ProviderDetail({ snapshot: s, insights, onOpenSettings }: { snap
             <span className="bucket-reset">{t("reset.monitor_note")}</span>
           </div>
           {r.items.length > 0 && (
-            <div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {/* 标题与过期时间分行堆叠：官方标题较长（如 Full reset (Weekly + 5 hr)），
+                  原左右两端对齐的 .kv 会让两者换行挤在一起且无法对齐（用户实测反馈） */}
               {r.items.map((it, i) => (
-                <div className="kv" key={i}>
-                  <span>{it.titleRaw ?? "—"}</span>
-                  <b>{it.expiresAt ? `${formatDate(it.expiresAt)} · ${t("reset.expires", { time: timeUntil(it.expiresAt, lang) })}` : "—"}</b>
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 1,
+                    paddingBottom: 6,
+                    borderBottom: i + 1 < r.items.length ? "0.5px solid var(--hairline)" : "none",
+                  }}
+                >
+                  <span style={{ fontSize: 11.5, color: "var(--fg-2)" }}>{it.titleRaw ?? "—"}</span>
+                  <b style={{ fontSize: 11.5 }}>
+                    {it.expiresAt ? `${formatDate(it.expiresAt)} · ${t("reset.expires", { time: timeUntil(it.expiresAt, lang) })}` : "—"}
+                  </b>
                 </div>
               ))}
             </div>
@@ -411,7 +424,7 @@ function PredictionLine({ p }: { p: BucketPrediction }) {
   const { t, lang } = useI18n();
   const hours = p.windowHours < 1 ? `${Math.round(p.windowHours * 60)}m` : `${p.windowHours.toFixed(1)}h`;
   return (
-    <div style={{ margin: "2px 0 12px" }}>
+    <div style={{ margin: "8px 0 0" }}>
       <div className="err-line">
         <span className="dot stale" />
         {t("predict.line", { time: timeUntil(p.exhaustAt, lang) })}
