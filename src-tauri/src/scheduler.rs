@@ -6,7 +6,7 @@ use crate::zcode;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Mutex;
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 
 pub const PROVIDER_IDS: [&str; 5] = ["codex", "zcode", "mimo", "deepseek", "workbuddy"];
@@ -27,6 +27,10 @@ pub struct Runtime {
     pub kv_family: Option<String>,
     /// 每 Provider 最近一次完成抓取的时间（ms）；活动边沿补刷的 30s 判据
     pub last_fetch_ms: HashMap<String, i64>,
+    /// 会话型 Provider 最近一次真实会话读取（ms）；后台验证 30min 判据
+    pub last_session_read_ms: HashMap<String, i64>,
+    /// 会话读取进行中标志（防重入：刷新连点 / ConnectFlow 轮询 / 后台验证互相排队）
+    pub read_in_progress: HashMap<String, bool>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -151,6 +155,52 @@ pub async fn tick(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::stor
             snapshot.error_state.as_ref().map(|e| e.code.clone()).unwrap_or_default(),
         );
     }
+
+    // 会话型 Provider 后台验证（②0/④）：每 30 分钟对**隐藏的**登录窗做一次真实会话读取，
+    // 会话失效 → 立即标 auth_required 并广播，用户无需手动刷新才发现。
+    // 窗口可见（用户正在登录）时绝不触发，杜绝打断登录流程（②2）。
+    // last_session_read_ms 由 session_read 本体在开始时记账（含手动/ConnectFlow 触发）。
+    for id in ["mimo", "workbuddy"] {
+        {
+            let r = rt.lock().unwrap();
+            if !r.enabled.get(id).copied().unwrap_or(true) { continue; }
+            if r.read_in_progress.get(id).copied().unwrap_or(false) { continue; }
+            let last = r.last_session_read_ms.get(id).copied().unwrap_or(0);
+            if chrono::Utc::now().timestamp_millis() - last < 30 * 60 * 1000 { continue; }
+        }
+        let label = if id == "mimo" { "mimo-login" } else { "wb-login" };
+        let win_hidden = app
+            .get_webview_window(label)
+            .map(|w| !w.is_visible().unwrap_or(true))
+            .unwrap_or(false);
+        if !win_hidden { continue; }
+        let a2 = app.clone();
+        let r2 = rt.clone();
+        let s2 = store.clone();
+        let id2 = id.to_string();
+        tauri::async_runtime::spawn(async move {
+            let res = if id2 == "mimo" {
+                crate::commands::session_read_mimo(a2.clone(), r2.clone(), s2.clone()).await
+            } else {
+                crate::commands::session_read_workbuddy(a2.clone(), r2.clone(), s2.clone()).await
+            };
+            if let Err(e) = res {
+                eprintln!("[aqm] session verify {id2}: {e}");
+            }
+        });
+    }
+}
+
+/// 会话型快照的年龄标记：会话数据没有主动外呼，快照超过 30 分钟即标 stale，
+/// UI 显示「数据可能过期」，不再让旧积分看起来像实时数据（用户实测反馈 ②0）。
+fn with_age_stale(mut s: Snapshot) -> Snapshot {
+    if let Ok(t) = chrono::DateTime::parse_from_rfc3339(&s.fetched_at) {
+        let age_ms = chrono::Utc::now().timestamp_millis() - t.timestamp_millis();
+        if age_ms > 30 * 60 * 1000 {
+            s.stale = true;
+        }
+    }
+    s
 }
 
 /// 会话型 Provider（MiMo/WorkBuddy）的取数：优先内存快照，其次 SQLite 最近成功快照，否则回登录态。
@@ -164,7 +214,7 @@ pub fn session_cached_snapshot(
     let existing = rt.lock().unwrap().snapshots.get(id).cloned();
     if let Some(s) = existing {
         if s.connection_state == "connected" || s.connection_state == "degraded" {
-            return s;
+            return with_age_stale(s);
         }
     }
     let stored = store
@@ -173,7 +223,7 @@ pub fn session_cached_snapshot(
         .find(|(pid, _)| pid == id)
         .and_then(|(_, json)| serde_json::from_str::<Snapshot>(&json).ok());
     match stored {
-        Some(s) if s.connection_state == "connected" || s.connection_state == "degraded" => s,
+        Some(s) if s.connection_state == "connected" || s.connection_state == "degraded" => with_age_stale(s),
         _ => login_required,
     }
 }

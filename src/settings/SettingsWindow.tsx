@@ -105,7 +105,18 @@ export function SettingsWindow({
         if (snap) setSnaps((m) => ({ ...m, codex: snap as never }));
       } else {
         await bridge.refreshNow(id);
-        const snap = await bridge.getSnapshot(id);
+        // ④（用户实测反馈）：会话型读取在后台异步完成（最长 30–45s），必须轮询等快照
+        // 真正变化（新数据或新错误）再判定；绝不拿旧快照冒充「测试通过」
+        const old = await bridge.getSnapshot(id);
+        const oldAt = old?.fetchedAt;
+        const oldErr = old?.errorState?.code;
+        let snap = old;
+        const deadline = Date.now() + 50000;
+        while (Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 1500));
+          snap = await bridge.getSnapshot(id);
+          if (snap && (snap.fetchedAt !== oldAt || snap.errorState?.code !== oldErr)) break;
+        }
         const ok = snap && !snap.errorState && (snap.connectionState === "connected" || snap.connectionState === "degraded");
         setTestState((s) => ({ ...s, [id]: ok ? "ok" : undefined }));
         if (snap) setSnaps((m) => ({ ...m, [id]: snap as never }));
@@ -157,6 +168,16 @@ export function SettingsWindow({
       setCreds((c) => ({ ...c, [id]: false }));
       // 同步 Providers 列表状态
       invoke<Record<string, boolean>>("get_credential_status").then(setCreds).catch(() => {});
+      bridge.getSnapshots().then((all) => {
+        const m: Record<string, { connectionState?: string; errorState?: { code?: string } }> = {};
+        for (const s of all) m[s.providerId] = s;
+        setSnaps(m);
+      }).catch(() => {});
+    }).catch(() => {});
+  };
+  // ②1：会话型 Provider 退出——此前 MiMo 是 no-op、WorkBuddy 无入口（用户实测反馈）
+  const clearSession = (id: string) => {
+    invoke("clear_provider_session", { id }).then(() => {
       bridge.getSnapshots().then((all) => {
         const m: Record<string, { connectionState?: string; errorState?: { code?: string } }> = {};
         for (const s of all) m[s.providerId] = s;
@@ -352,14 +373,24 @@ export function SettingsWindow({
                     );
                   })}
                   <div className="cred-row">
-                    <span className="cred-id">mimo/web-session (isolated WebView2 profile)</span>
+                    <span className="cred-id">mimo / web-session (isolated WebView2 profile)</span>
                     <button
                       className="mini-btn"
-                      onClick={() => invoke("clear_mimo_session").catch(() => {})}
+                      onClick={() => clearSession("mimo")}
                     >
                       {t("settings.clear_session")}
                     </button>
                   </div>
+                  <div className="cred-row">
+                    <span className="cred-id">workbuddy / web-session (isolated WebView2 profile)</span>
+                    <button
+                      className="mini-btn"
+                      onClick={() => clearSession("workbuddy")}
+                    >
+                      {t("settings.clear_session")}
+                    </button>
+                  </div>
+                  <p className="helper quiet">{t("settings.clear_session_note")}</p>
                   <div className="cred-row">
                     <span className="cred-id">codex / chatgpt session（Managed Runtime）</span>
                     <span style={{ display: "flex", gap: 8, alignItems: "center" }}>

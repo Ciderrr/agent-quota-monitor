@@ -216,10 +216,33 @@ pub fn get_credential_status() -> serde_json::Value {
     serde_json::json!({ "deepseek": ds, "zcode": zc })
 }
 
-/// 清除 MiMo 隔离会话（若尚未实装则为 no-op 成功）
+/// 清除会话型 Provider 的 WebView2 会话（②1：此前 MiMo 是 no-op、WorkBuddy 无入口）。
+/// 清 Cookie 与站点存储后快照如实回到「需要登录」。注意：应用所有 WebView2 窗口共享
+/// 同一 profile，清除会同时使 MiMo 与 WorkBuddy 的本地会话失效（设置页如实标注）。
 #[tauri::command]
-pub fn clear_mimo_session(_store: State<Store>) -> Result<(), String> {
-    // Phase 3.3 将清除隔离 WebView2 profile；当前仅标记成功
+pub fn clear_provider_session(
+    app: AppHandle,
+    rt: State<SharedRuntime>,
+    store: State<Store>,
+    id: String,
+) -> Result<(), String> {
+    let label = match id.as_str() {
+        "mimo" => "mimo-login",
+        "workbuddy" => "wb-login",
+        _ => return Err("unknown session provider".into()),
+    };
+    if let Some(w) = app.get_webview_window(label) {
+        // 先移出官方站点，避免清除过程中的跨源请求；再清本应用全部 WebView2 浏览数据
+        let _ = w.eval("location.href = 'about:blank'");
+        let _ = w.clear_all_browsing_data();
+    }
+    let snap = match id.as_str() {
+        "mimo" => crate::mimo::login_required(),
+        _ => crate::workbuddy::login_required(),
+    };
+    rt.lock().unwrap().snapshots.insert(id.clone(), snap.clone());
+    store.insert_snapshot(&id, &serde_json::to_string(&snap).unwrap_or_default());
+    let _ = app.emit("snapshot-updated", json!({ "providerId": id }));
     Ok(())
 }
 
@@ -539,13 +562,13 @@ pub fn mimo_close_login(app: AppHandle) {
     }
 }
 
-/// 会话读取失败 → 如实把快照标为「需要登录」并持久化（仅当当前是 connected，
+/// 会话读取失败 → 如实把快照标为「需要登录」并持久化（仅当当前是 connected/degraded，
 /// 避免覆盖首连流程）；否则重启后又会恢复成误导性的「已连接」旧快照。
 fn mark_session_auth_required(app: &AppHandle, rt: &SharedRuntime, store: &Store, id: &str, detail: &str) {
     let snap = {
         let mut r = rt.lock().unwrap();
         match r.snapshots.get_mut(id) {
-            Some(s) if s.connection_state == "connected" => {
+            Some(s) if s.connection_state == "connected" || s.connection_state == "degraded" => {
                 s.connection_state = "auth_required".into();
                 s.error_state = Some(ErrorState {
                     code: "login_expired".into(),
@@ -563,11 +586,50 @@ fn mark_session_auth_required(app: &AppHandle, rt: &SharedRuntime, store: &Store
     }
 }
 
+/// 会话读取防重入 + 记账：刷新连点 / ConnectFlow 轮询 / 后台验证共用一把进程内标志。
+/// 拿不到锁直接返回 busy（调用方继续等下一轮即可），绝不开第二个并行读取循环。
+fn try_begin_session_read(rt: &SharedRuntime, id: &str) -> bool {
+    let mut r = rt.lock().unwrap();
+    if r.read_in_progress.get(id).copied().unwrap_or(false) {
+        return false;
+    }
+    r.read_in_progress.insert(id.to_string(), true);
+    r.last_session_read_ms.insert(id.to_string(), chrono::Utc::now().timestamp_millis());
+    true
+}
+
+fn end_session_read(rt: &SharedRuntime, id: &str) {
+    rt.lock().unwrap().read_in_progress.insert(id.to_string(), false);
+}
+
 /// MiMo：会话读取核心逻辑（命令包装与「全部刷新」共用）
 pub async fn session_read_mimo(app: AppHandle, rt: SharedRuntime, store: Store) -> Result<serde_json::Value, String> {
+    if !try_begin_session_read(&rt, crate::mimo::ID) {
+        return Err("read in progress".into());
+    }
+    let res = session_read_mimo_inner(app, rt.clone(), store).await;
+    end_session_read(&rt, crate::mimo::ID);
+    res
+}
+
+async fn session_read_mimo_inner(app: AppHandle, rt: SharedRuntime, store: Store) -> Result<serde_json::Value, String> {
     let w = app
         .get_webview_window("mimo-login")
         .ok_or("mimo-login window not open")?;
+    // 窗口可见 = 用户可能正在登录：绝不导航打断，读取失败也绝不标「登录已失效」
+    let visible = w.is_visible().unwrap_or(false);
+    // 隐藏窗可能停在 aqm:// 响应页（上次回传的落地页）→ 同源 fetch 会失败。
+    // 仅当窗口隐藏时才导航回 Console；helper 在 console 域任意页面均可同源 fetch。
+    if !visible {
+        let on_site = w
+            .url()
+            .map(|u| u.host_str() == Some(crate::mimo::HOST))
+            .unwrap_or(false);
+        if !on_site {
+            let _ = w.eval(&format!("location.href = '{}';", crate::mimo::USAGE_URL));
+            tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
+        }
+    }
     let js = r#"(async () => {
       try {
         const [u, d] = await Promise.all([
@@ -609,7 +671,7 @@ pub async fn session_read_mimo(app: AppHandle, rt: SharedRuntime, store: Store) 
         let r = rt.lock().unwrap();
         r.snapshots.get(crate::mimo::ID).map(|s| s.fetched_at.clone())
     };
-    // IIFE 每 2s 重发（页面加载时序不可控）；AQMERR 只记录，超时才报错
+    // IIFE 每 2s 重发（页面加载时序不可控）；AQMERR 出现即刻早退反馈，不再傻等 45s（④）
     let mut last_err = String::new();
     for i in 0..90 {
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
@@ -628,13 +690,18 @@ pub async fn session_read_mimo(app: AppHandle, rt: SharedRuntime, store: Store) 
         let title = w.title().unwrap_or_default();
         if title.starts_with("AQMERR") {
             last_err = title;
+            break;
         }
     }
     if !last_err.is_empty() {
-        mark_session_auth_required(&app, &rt, &store, crate::mimo::ID, "MiMo 登录会话已失效，请重新登录");
+        if !visible {
+            mark_session_auth_required(&app, &rt, &store, crate::mimo::ID, "MiMo 登录会话已失效，请重新登录");
+        }
         return Err(last_err);
     }
-    mark_session_auth_required(&app, &rt, &store, crate::mimo::ID, "MiMo 读取超时，请确认已登录后重试");
+    if !visible {
+        mark_session_auth_required(&app, &rt, &store, crate::mimo::ID, "MiMo 读取超时，请确认已登录后重试");
+    }
     Err("timeout waiting usage".into())
 }
 
@@ -656,6 +723,37 @@ pub(crate) fn store_mimo_payload(
 ) -> crate::types::Snapshot {
     let usage = payload.get("usage").cloned().unwrap_or(serde_json::Value::Null);
     let detail = payload.get("detail").cloned().unwrap_or(serde_json::Value::Null);
+    // 防线：会话失效时官方接口可能返回 200 + 错误体（无 data.monthUsage）。
+    // 绝不让空数据伪造成「剩余 100%」覆盖真实快照；窗口隐藏才如实标记（可见 = 登录中）。
+    if usage.pointer("/data/monthUsage").is_none() {
+        let visible = app
+            .get_webview_window("mimo-login")
+            .map(|w| w.is_visible().unwrap_or(false))
+            .unwrap_or(false);
+        if visible {
+            let cur = rt.lock().unwrap().snapshots.get(crate::mimo::ID).cloned();
+            return cur.unwrap_or_else(|| crate::mimo::login_required());
+        }
+        {
+            let mut r = rt.lock().unwrap();
+            match r.snapshots.get_mut(crate::mimo::ID) {
+                Some(s) if s.connection_state == "connected" || s.connection_state == "degraded" => {
+                    s.connection_state = "auth_required".into();
+                    s.error_state = Some(ErrorState {
+                        code: "login_expired".into(),
+                        detail: Some("MiMo 返回无月度用量（会话可能已失效）".into()),
+                        occurred_at: crate::types::now_iso(),
+                    });
+                }
+                _ => {}
+            }
+        }
+        let snap = rt.lock().unwrap().snapshots.get(crate::mimo::ID).cloned();
+        let snap = snap.unwrap_or_else(|| crate::mimo::login_required());
+        store.insert_snapshot(crate::mimo::ID, &serde_json::to_string(&snap).unwrap_or_default());
+        let _ = app.emit("snapshot-updated", json!({ "providerId": "mimo" }));
+        return snap;
+    }
     let snap = crate::mimo::map_usage_detail(&usage, &detail);
     {
         let mut r = rt.lock().unwrap();
@@ -769,11 +867,30 @@ pub async fn session_read_workbuddy(
     rt: SharedRuntime,
     store: Store,
 ) -> Result<serde_json::Value, String> {
+    if !try_begin_session_read(&rt, crate::workbuddy::ID) {
+        return Err("read in progress".into());
+    }
+    let res = session_read_workbuddy_inner(app, rt.clone(), store).await;
+    end_session_read(&rt, crate::workbuddy::ID);
+    res
+}
+
+async fn session_read_workbuddy_inner(
+    app: AppHandle,
+    rt: SharedRuntime,
+    store: Store,
+) -> Result<serde_json::Value, String> {
     let w = app
         .get_webview_window("wb-login")
         .ok_or("wb-login window not open")?;
-    // 隐藏窗可能停在 aqm 响应页/初始页 → 先导航回积分页
-    let _ = w.eval(&format!("location.href = '{}';", WB_PLANS_URL));
+    // ②2 修复（用户实测：登录被无限刷新打断）：窗口可见 = 用户正在登录，
+    // **绝不导航**——helper 在 workbuddy.cn 任意页面都能同源 fetch billing 接口；
+    // 且读取失败也绝不标「登录已失效」（登录中的失败是正常过程）。
+    // 仅隐藏窗（后台读取/手动刷新）才先导航回积分页，摆脱 aqm 响应页残留。
+    let visible = w.is_visible().unwrap_or(false);
+    if !visible {
+        let _ = w.eval(&format!("location.href = '{}';", WB_PLANS_URL));
+    }
     let old_fetched = {
         let r = rt.lock().unwrap();
         r.snapshots.get(crate::workbuddy::ID).map(|s| s.fetched_at.clone())
@@ -817,14 +934,19 @@ pub async fn session_read_workbuddy(
                 } else if let Some(rest) = frag.strip_prefix("aqmerr=") {
                     if let Some(msg) = crate::percent_decode(rest) {
                         let _ = w.eval("location.hash = '';");
-                        mark_session_auth_required(&app, &rt, &store, crate::workbuddy::ID, "WorkBuddy 登录会话已失效，请重新登录");
+                        // 可见 = 登录中：失败是正常过程，不打扰、不标记（②2）
+                        if !visible {
+                            mark_session_auth_required(&app, &rt, &store, crate::workbuddy::ID, "WorkBuddy 登录会话已失效，请重新登录");
+                        }
                         return Err(format!("wb read: {msg}"));
                     }
                 }
             }
         }
     }
-    mark_session_auth_required(&app, &rt, &store, crate::workbuddy::ID, "WorkBuddy 读取超时，请确认已登录后重试");
+    if !visible {
+        mark_session_auth_required(&app, &rt, &store, crate::workbuddy::ID, "WorkBuddy 读取超时，请确认已登录后重试");
+    }
     Err("timeout waiting usage".into())
 }
 

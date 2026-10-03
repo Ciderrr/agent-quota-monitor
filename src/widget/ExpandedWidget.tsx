@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ProviderSnapshot, QuotaBucket } from "../types/provider";
 import { metaOf } from "../types/provider";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { isTauri } from "../bridge";
 import { useI18n } from "../i18n";
 import {
   bucketLabel, levelOf, timeUntil, updatedAgo, money, compact,
+  pickPrimaryBucket, isAggregateBucket,
 } from "../ui/format";
 import { IconBack, IconRefresh, IconExternal, IconHistory, IconCollapse, IconSettings } from "../ui/icons";
 import { GlassSurface } from "../ui/GlassSurface";
@@ -68,6 +70,13 @@ export function ExpandedWidget({
           meta={updatedAgo(s.fetchedAt, lang)}
           onRefresh={() => onRefresh(detailId)}
           refreshLabel={t("action.refresh")}
+          refreshNode={
+            <DetailRefreshButton
+              providerId={detailId}
+              onRefresh={() => onRefresh(detailId)}
+              label={t("action.refresh")}
+            />
+          }
           extra={showOpenUsage ? <button
             className="foot-btn"
             onClick={() => {
@@ -100,15 +109,53 @@ export function ExpandedWidget({
     );
   }
 
-function Foot({ meta, onRefresh, refreshLabel, extra }: {
-  meta: string; onRefresh: () => void; refreshLabel: string; extra?: React.ReactNode;
+function Foot({ meta, onRefresh, refreshLabel, extra, refreshNode }: {
+  meta: string; onRefresh: () => void; refreshLabel: string; extra?: React.ReactNode; refreshNode?: React.ReactNode;
 }) {
   return (
     <div className="x-foot">
       <span className="meta">{meta}</span>
       {extra}
-      <button className="icon-btn" aria-label={refreshLabel} onClick={onRefresh}><IconRefresh /></button>
+      {refreshNode ?? (
+        <button className="icon-btn" aria-label={refreshLabel} onClick={onRefresh}><IconRefresh /></button>
+      )}
     </div>
+  );
+}
+
+/** ④ 详情页刷新按钮（用户实测反馈）：按了必须立刻有反应——busy 转圈直到该 Provider
+ *  快照真正更新（snapshot-updated 事件）或超时；会话型读取最长 30–45s 也不再是无声等待 */
+function DetailRefreshButton({ providerId, onRefresh, label }: {
+  providerId: string; onRefresh: () => void; label: string;
+}) {
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!busy) return;
+    let un: (() => void) | undefined;
+    let closed = false;
+    const finish = () => {
+      if (closed) return;
+      closed = true;
+      setBusy(false);
+      un?.();
+    };
+    if (isTauri) {
+      listen<{ providerId?: string }>("snapshot-updated", (e) => {
+        const pid = e.payload?.providerId;
+        if (!pid || pid === providerId || pid === "all") finish();
+      }).then((f) => { un = f; }).catch(() => {});
+    }
+    const to = setTimeout(finish, 45000);
+    return () => { closed = true; clearTimeout(to); un?.(); };
+  }, [busy, providerId]);
+  return (
+    <button
+      className="icon-btn"
+      aria-label={label}
+      onClick={() => { if (!busy) { setBusy(true); onRefresh(); } }}
+    >
+      {busy ? <span className="spinner" /> : <IconRefresh />}
+    </button>
   );
 }
 
@@ -116,10 +163,11 @@ function OverviewBlock({ s, onOpen }: { s: ProviderSnapshot; onOpen: () => void 
   const { t, lang } = useI18n();
   const meta = metaOf(s.providerId);
   const buckets = s.quotaBuckets.filter((b) => b.remainingPercent !== undefined);
-  const primary = buckets.length
-    ? buckets.reduce((a, b) => (a.remainingPercent! <= b.remainingPercent! ? a : b))
-    : undefined;
-  const rest = buckets.filter((b) => b !== primary);
+  const primary = pickPrimaryBucket(buckets);
+  // ②3：存在聚合桶（积分包合计）时，列表行只展示合计；逐包明细留给详情页
+  const rest = buckets.some(isAggregateBucket)
+    ? []
+    : buckets.filter((b) => b !== primary);
   const bal = s.balances[0];
   const hasErr = s.connectionState === "not_connected" || s.connectionState === "auth_required" || s.connectionState === "unsupported" || s.connectionState === "disconnected";
 
@@ -277,7 +325,8 @@ export function ProviderDetail({ snapshot: s, onOpenSettings }: { snapshot: Prov
         </div>
       )}
 
-      {s.quotaBuckets.map((b) => <Bucket key={b.id} b={b} />)}
+      {/* ②3：详情页逐包展示，聚合桶（id 以 /all 结尾）不重复出现 */}
+      {s.quotaBuckets.filter((b) => !isAggregateBucket(b)).map((b) => <Bucket key={b.id} b={b} />)}
 
       {s.resetOpportunities.map((r) => (
         <div key={r.id} className="bucket">

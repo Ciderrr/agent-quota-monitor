@@ -239,6 +239,8 @@ pub fn run() {
                 glass_strength,
                 kv_family,
                 last_fetch_ms: HashMap::new(),
+                last_session_read_ms: HashMap::new(),
+                read_in_progress: HashMap::new(),
             })));
 
             // 浮窗：右上角定位。不铺 Mica/Acrylic，webview 背景全透明——
@@ -366,7 +368,7 @@ pub fn run() {
             commands::close_settings_window,
             commands::get_credential_status,
             commands::list_providers_enabled,
-            commands::clear_mimo_session,
+            commands::clear_provider_session,
             commands::quit_app,
         ])
         .run(tauri::generate_context!())

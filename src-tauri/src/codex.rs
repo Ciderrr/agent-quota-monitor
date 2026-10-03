@@ -270,6 +270,8 @@ fn window_to_period(mins: Option<i64>, label_hint: &str) -> PeriodType {
     match mins {
         Some(300) => PeriodType::Rolling { window_mins: 300 },
         Some(10080) => PeriodType::Weekly,
+        // ③ 用户实测：Pro 档存在月度窗口（30d），必须映射为 Monthly 才能参与显示优先级
+        Some(43200) => PeriodType::Monthly,
         Some(m) => PeriodType::Custom { raw: format!("{label_hint}#{m}m") },
         None => PeriodType::Custom { raw: label_hint.to_string() },
     }

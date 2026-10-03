@@ -18,6 +18,31 @@ fn num(v: Option<&Value>) -> Option<f64> {
     }
 }
 
+/// ②3 聚合桶：多积分包合计（列表视图优先展示它，明细视图仍逐包展示）。
+/// 置于 buckets 首位；id 固定 `<id>/all` 供前端识别。
+fn with_aggregate(mut buckets: Vec<QuotaBucket>) -> Vec<QuotaBucket> {
+    let sum_t: f64 = buckets.iter().filter_map(|b| b.total).sum();
+    let sum_r: f64 = buckets.iter().filter_map(|b| b.remaining).sum();
+    let sum_u: f64 = buckets.iter().filter_map(|b| b.used).sum();
+    let pct = if sum_t > 0.0 { (sum_r / sum_t * 10000.0).round() / 100.0 } else { 0.0 };
+    let agg = QuotaBucket {
+        id: format!("{ID}/all"),
+        label_key: "quota.credits_all".into(),
+        label_raw: None,
+        period_type: PeriodType::Custom { raw: "cycle".into() },
+        unit: Unit::Credits,
+        total: Some(sum_t),
+        used: Some(sum_u),
+        remaining: Some(sum_r),
+        remaining_percent: Some(pct),
+        reset_at: None,
+        source: "official".into(),
+        confidence: "high".into(),
+    };
+    buckets.insert(0, agg);
+    buckets
+}
+
 /// summary + paid/free 明细的 Accounts 合并数组 → Snapshot
 pub fn map_summary(summary: &Value, accounts: &Value) -> Snapshot {
     let mut buckets = vec![];
@@ -71,7 +96,7 @@ pub fn map_summary(summary: &Value, accounts: &Value) -> Snapshot {
         provider_id: ID.into(),
         account_label: Some("WorkBuddy".into()),
         plan_label: plan,
-        quota_buckets: buckets,
+        quota_buckets: with_aggregate(buckets),
         balances: vec![],
         reset_opportunities: vec![],
         connection_state: "connected".into(),
@@ -115,7 +140,7 @@ pub fn map_title(plan: &str, pkgs: &[(f64, f64, f64)]) -> Snapshot {
         provider_id: ID.into(),
         account_label: Some("WorkBuddy".into()),
         plan_label: (!plan.is_empty() && plan != "-").then(|| plan.to_string()),
-        quota_buckets: buckets,
+        quota_buckets: with_aggregate(buckets),
         balances: vec![],
         reset_opportunities: vec![],
         connection_state: "connected".into(),
