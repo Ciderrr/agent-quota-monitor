@@ -147,6 +147,10 @@ pub async fn tick(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::stor
         if connected && id == deepseek::ID {
             maybe_notify_balance(app.clone(), rt, store, &snapshot);
         }
+        // 额度阈值通知（warn/crit 两级，Windows 系统通知；PRODUCT_SPEC 承诺项）
+        if connected {
+            maybe_notify_quota(app.clone(), rt, store, &snapshot);
+        }
 
         let _ = app.emit("snapshot-updated", json!({ "providerId": id }));
         eprintln!(
@@ -280,6 +284,73 @@ fn maybe_notify_balance(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate
         let _ = app.notification().builder().title("DeepSeek 余额不足").body(format!("当前余额 {sym}{total:.2}（阈值 {sym}{threshold:.0}）")).show();
     } else if total >= threshold && already {
         store.kv_set(&format!("notif::{rule_key}"), ""); // 恢复后允许下次再次提醒
+    }
+}
+
+fn provider_display(id: &str) -> &'static str {
+    match id {
+        "codex" => "Codex",
+        "mimo" => "MiMo Token Plan",
+        "workbuddy" => "WorkBuddy",
+        "deepseek" => "DeepSeek",
+        "zcode" => "ZCode·GLM",
+        _ => "Provider",
+    }
+}
+
+/// 额度阈值通知（warn/crit 两级，Windows 系统通知）。
+/// 与 UI 同一套代表桶语义：reserve 类桶不参与告警（reserve 剩 0% 是常态，用户实测反馈）；
+/// 存在聚合桶（*/all）时只看聚合桶。同桶同级只提醒一次，缓解（crit→warn）不打扰，
+/// 回升到 warn 以上自动复位，下次跌破可再次提醒。
+fn maybe_notify_quota(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::store::Store, s: &Snapshot) {
+    let (warn, crit, enabled) = {
+        let r = rt.lock().unwrap();
+        (r.thresholds.warn, r.thresholds.crit, r.notify_enabled)
+    };
+    if !enabled {
+        return;
+    }
+    let mut cands: Vec<&QuotaBucket> = s
+        .quota_buckets
+        .iter()
+        .filter(|b| b.remaining_percent.is_some())
+        .filter(|b| {
+            let t = format!("{} {}", b.id, b.label_raw.clone().unwrap_or_default()).to_lowercase();
+            !t.contains("reserve")
+        })
+        .collect();
+    if cands.is_empty() {
+        return;
+    }
+    if let Some(pos) = cands.iter().position(|b| b.id.ends_with("/all")) {
+        let agg = cands[pos];
+        cands.clear();
+        cands.push(agg);
+    }
+    for b in cands {
+        let Some(pct) = b.remaining_percent else { continue };
+        let level = if (pct as i64) < crit { "crit" } else if (pct as i64) < warn { "warn" } else { "ok" };
+        let key = format!("notif::quota::{}::{}", s.provider_id, b.id);
+        let already = store.kv_get(&key).unwrap_or_default();
+        if level == "ok" {
+            if !already.is_empty() {
+                store.kv_set(&key, ""); // 回升复位
+            }
+            continue;
+        }
+        if already == level {
+            continue; // 同桶同级去重
+        }
+        if already == "crit" && level == "warn" {
+            store.kv_set(&key, "warn"); // 缓解不重复打扰
+            continue;
+        }
+        store.kv_set(&key, level);
+        let title = if level == "crit" { "额度即将耗尽" } else { "额度偏低" };
+        let label = b.label_raw.clone().unwrap_or_else(|| b.id.clone());
+        let body = format!("{} · {}：剩余 {:.0}%", provider_display(&s.provider_id), label, pct);
+        eprintln!("[aqm] notify quota {} {} ({}%): {}", s.provider_id, level, pct, b.id);
+        let _ = app.notification().builder().title(title).body(body).show();
     }
 }
 
