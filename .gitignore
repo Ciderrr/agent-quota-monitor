@@ -26,3 +26,4 @@ src-tauri/.mimosa/
 
 # WorkBuddy 抓包 harness 临时产物（含登录 profile，绝不可入库）
 .tmp-workbuddy/
+tmp-probe.json
