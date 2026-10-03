@@ -348,10 +348,10 @@ export function SettingsWindow({
                 <Row label={t("settings.notify_global")}>
                   <Switch on={prefs.notify} onChange={(v) => { set("notify", v); void notifySettings({ notifyEnabled: v }); }} />
                 </Row>
-                <Row label={t("settings.notify_warn")}>
+                <Row label={t("settings.notify_warn", { value: prefs.warn })}>
                   <ThreshPick presets={[25, 20, 15]} value={prefs.warn} onChange={(v) => setThreshold("warn", v)} unit="%" min={0} max={100} />
                 </Row>
-                <Row label={t("settings.notify_crit")}>
+                <Row label={t("settings.notify_crit", { value: prefs.crit })}>
                   <ThreshPick presets={[10, 5, 3]} value={prefs.crit} onChange={(v) => setThreshold("crit", v)} unit="%" min={0} max={100} />
                 </Row>
                 {snaps.deepseek?.connectionState === "connected" && (
