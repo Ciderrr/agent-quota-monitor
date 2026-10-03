@@ -70,34 +70,34 @@ function CodexFlow({ onClose }: { onClose: () => void }) {
       return;
     }
     setStage("browser");
-    setMsg("正在准备 Codex 官方组件…（首次可能需下载约 160MB）");
+    setMsg(t("connect.codex.preparing"));
     try {
       await invoke("codex_ensure_runtime");
     } catch (e) {
       setStage("test-fail");
-      setMsg("官方组件下载失败：" + String(e));
+      setMsg(t("connect.codex.prepare_fail", { err: String(e) }));
       return;
     }
     try {
       await invoke("codex_login_chatgpt");
       setStage("waiting");
-      setMsg("请在弹出的浏览器/登录页完成 ChatGPT 登录。登录成功后会自动读取额度。");
-      // 自动轮询，不必手点
+      setMsg(t("connect.codex.wait_login"));
+      // 自动轮询，不必手点（变量勿名 t——会遮蔽 i18n 的 t）
       let n = 0;
-      const t = setInterval(async () => {
+      const poll = setInterval(async () => {
         n += 1;
         try {
           const snap = await invoke<{ connectionState?: string }>("codex_read_rate_limits");
           if (snap?.connectionState === "connected" || snap?.connectionState === "degraded") {
-            clearInterval(t);
+            clearInterval(poll);
             setStage("success");
-            setMsg("已读取到 Codex 额度。");
+            setMsg(t("connect.codex.got_quota"));
           }
         } catch { /* wait */ }
         if (n >= 36) {
-          clearInterval(t);
+          clearInterval(poll);
           setStage("test-fail");
-          setMsg("读取失败：login_expired。请点「Sign in with ChatGPT」完成官方登录后会自动重试。");
+          setMsg(t("connect.codex.fail_expired"));
         }
       }, 3000);
     } catch (e) {
@@ -112,13 +112,13 @@ function CodexFlow({ onClose }: { onClose: () => void }) {
       const snap = await invoke<{ connectionState?: string; errorState?: { code?: string; detail?: string } }>("codex_read_rate_limits");
       if (snap?.connectionState === "connected" || snap?.connectionState === "degraded") {
         setStage("success");
-        setMsg("已读取到 Codex 额度。");
+        setMsg(t("connect.codex.got_quota"));
       } else {
         setStage("test-fail");
         const code = snap?.errorState?.code;
         setMsg(code === "network_unavailable"
-          ? "读取失败：Codex 后台无响应。请先完成官方登录后再试。"
-          : code ? `读取失败：${code}` : "尚未登录或读取失败");
+          ? t("connect.codex.fail_no_response")
+          : code ? t("connect.read_fail", { code }) : t("connect.not_logged_in"));
       }
     } catch (e) {
       setStage("test-fail");
@@ -142,7 +142,7 @@ function CodexFlow({ onClose }: { onClose: () => void }) {
             打开登录页
           </button>
           <button className="foot-btn" onClick={afterLogin} disabled={stage === "testing"}>
-            {stage === "testing" ? "读取中…" : "我已登录，读取额度"}
+            {stage === "testing" ? t("connect.reading") : t("connect.i_logged_in")}
           </button>
         </>
       )}
@@ -219,7 +219,7 @@ function KeyFlow({ providerId, onClose }: { providerId: string; onClose: () => v
         {stage === "test-ok" && <span className="row-state" style={{ color: "var(--fg)" }}>✓ {t("connect.test_ok")}</span>}
         {stage === "test-fail" && (
           <span className="row-state" style={{ color: "var(--crit)" }}>
-            ✗ {!value.trim() ? "请输入 API Key 后再测试" : t("connect.test_fail")}
+            ✗ {!value.trim() ? t("connect.key_required") : t("connect.test_fail")}
           </span>
         )}
       </div>
@@ -250,7 +250,7 @@ function MimoFlow({ onClose }: { onClose: () => void }) {
   const openLogin = async () => {
     try {
       await invoke("mimo_open_login");
-      setMsg("请在左侧/新弹出的官方窗口完成登录，登录后会自动读取用量。");
+      setMsg(t("connect.mimo.wait_login"));
       setStage("reading");
       let tries = 0;
       const timer = setInterval(async () => {
@@ -271,7 +271,7 @@ function MimoFlow({ onClose }: { onClose: () => void }) {
         if (tries >= 24) {
           clearInterval(timer);
           setStage("idle");
-          setMsg("仍未读到额度。若官方窗口已显示套餐用量，请点「打开官方登录」聚焦窗口后再等一轮。");
+          setMsg(t("connect.mimo.retry_hint"));
         }
       }, 2500);
     } catch (e) {
@@ -295,12 +295,12 @@ function MimoFlow({ onClose }: { onClose: () => void }) {
         {isTauri ? (
           <>
             <button className="foot-btn" onClick={openLogin}>
-              {stage === "reading" ? "等待登录…" : "打开官方登录"}
+              {stage === "reading" ? t("connect.waiting_login") : t("connect.open_official_login")}
             </button>
             {stage === "reading" && (
               <span className="row-state" style={{ color: "var(--fg-2)" }}>
                 <span className="spinner" style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }} />
-                正在自动读取额度，无需点击
+                {t("connect.auto_reading_quota")}
               </span>
             )}
           </>
@@ -350,7 +350,7 @@ function WorkbuddyFlow({ onClose }: { onClose: () => void }) {
   const openLogin = async () => {
     try {
       await invoke("workbuddy_open_login");
-      setMsg("请在官方窗口完成登录，登录后会自动读取积分用量。");
+      setMsg(t("connect.wb.wait_login"));
       setStage("reading");
       let tries = 0;
       const timer = setInterval(async () => {
@@ -371,7 +371,7 @@ function WorkbuddyFlow({ onClose }: { onClose: () => void }) {
         if (tries >= 24) {
           clearInterval(timer);
           setStage("idle");
-          setMsg("仍未读到积分。若官方窗口已显示积分用量，请点「打开官方登录」聚焦窗口后再等一轮。");
+          setMsg(t("connect.wb.retry_hint"));
         }
       }, 2500);
     } catch (e) {
@@ -395,12 +395,12 @@ function WorkbuddyFlow({ onClose }: { onClose: () => void }) {
         {isTauri ? (
           <>
             <button className="foot-btn" onClick={openLogin}>
-              {stage === "reading" ? "等待登录…" : "打开官方登录"}
+              {stage === "reading" ? t("connect.waiting_login") : t("connect.open_official_login")}
             </button>
             {stage === "reading" && (
               <span className="row-state" style={{ color: "var(--fg-2)" }}>
                 <span className="spinner" style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }} />
-                正在自动读取积分，无需点击
+                {t("connect.auto_reading_credits")}
               </span>
             )}
           </>

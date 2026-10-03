@@ -208,7 +208,7 @@ pub fn run() {
             // 存储
             let store = store::Store::open().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
             let settings_json = store.kv_get("settings");
-            let (default_view, notify_enabled, thresholds, refresh_interval_ms, glass_strength) = settings_json
+            let (default_view, notify_enabled, thresholds, refresh_interval_ms, glass_strength, lang, theme) = settings_json
                 .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
                 .map(|v| {
                     (
@@ -219,9 +219,11 @@ pub fn run() {
                         ).unwrap_or_default(),
                         v.get("refreshIntervalMs").and_then(|x| x.as_i64()).unwrap_or(0),
                         v.get("glassStrength").and_then(|x| x.as_f64()).unwrap_or(1.0),
+                        v.get("lang").and_then(|x| x.as_str()).unwrap_or("zh").to_string(),
+                        v.get("theme").and_then(|x| x.as_str()).unwrap_or("dark").to_string(),
                     )
                 })
-                .unwrap_or_else(|| ("collapsed".into(), true, Thresholds::default(), 0i64, 1.0f64));
+                .unwrap_or_else(|| ("collapsed".into(), true, Thresholds::default(), 0i64, 1.0f64, "zh".into(), "dark".into()));
 
             let mut enabled: HashMap<String, bool> = HashMap::new();
             for p in scheduler::PROVIDER_IDS { enabled.insert(p.to_string(), true); }
@@ -259,6 +261,8 @@ pub fn run() {
                 refresh_interval_ms,
                 glass_strength,
                 kv_family,
+                lang,
+                theme,
                 last_fetch_ms: HashMap::new(),
                 last_session_read_ms: HashMap::new(),
                 read_in_progress: HashMap::new(),

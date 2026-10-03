@@ -27,6 +27,10 @@ pub struct Runtime {
     pub kv_family: Option<String>,
     /// 每 Provider 最近一次完成抓取的时间（ms）；活动边沿补刷的 30s 判据
     pub last_fetch_ms: HashMap<String, i64>,
+    /// 界面语言（zh | en）：跨窗口同步的持久化项（settings-changed 广播）
+    pub lang: String,
+    /// 主题（auto | light | dark）
+    pub theme: String,
     /// 会话型 Provider 最近一次真实会话读取（ms）；后台验证 30min 判据
     pub last_session_read_ms: HashMap<String, i64>,
     /// 会话读取进行中标志（防重入：刷新连点 / ConnectFlow 轮询 / 后台验证互相排队）

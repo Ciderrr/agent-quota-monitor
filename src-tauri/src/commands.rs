@@ -299,6 +299,8 @@ pub fn get_settings(rt: State<SharedRuntime>) -> serde_json::Value {
         "notifyEnabled": r.notify_enabled,
         "refreshIntervalMs": r.refresh_interval_ms,
         "glassStrength": r.glass_strength,
+        "lang": r.lang,
+        "theme": r.theme,
         "thresholds": r.thresholds,
     })
 }
@@ -315,6 +317,8 @@ pub fn set_settings(
     balance: Option<f64>,
     refresh_interval_ms: Option<i64>,
     glass_strength: Option<f64>,
+    lang: Option<String>,
+    theme: Option<String>,
 ) -> Result<(), String> {
     let snapshot_json;
     {
@@ -333,11 +337,22 @@ pub fn set_settings(
         if let Some(v) = glass_strength {
             r.glass_strength = v.clamp(0.3, 1.4);
         }
+        // 语言/主题：跨窗口持久化项（所有 WebView 窗口经 settings-changed 同步）
+        if let Some(v) = lang {
+            if v != "zh" && v != "en" { return Err("bad lang".into()); }
+            r.lang = v;
+        }
+        if let Some(v) = theme {
+            if v != "auto" && v != "light" && v != "dark" { return Err("bad theme".into()); }
+            r.theme = v;
+        }
         snapshot_json = json!({
             "defaultView": r.default_view,
             "notifyEnabled": r.notify_enabled,
             "refreshIntervalMs": r.refresh_interval_ms,
             "glassStrength": r.glass_strength,
+            "lang": r.lang,
+            "theme": r.theme,
             "thresholds": {
                 "warn": r.thresholds.warn,
                 "crit": r.thresholds.crit,
@@ -1039,7 +1054,7 @@ pub fn open_external(app: AppHandle, url: String) -> Result<(), String> {
     let allowed_suffixes = [
         "chatgpt.com", "platform.deepseek.com", "api.deepseek.com",
         "console.z.ai", "open.bigmodel.cn", "api.z.ai", "platform.xiaomimimo.com",
-        "www.workbuddy.cn",
+        "www.workbuddy.cn", "github.com",
     ];
     let u = url::Url::parse(&url).map_err(|_| "bad url".to_string())?;
     if u.scheme() != "https" {

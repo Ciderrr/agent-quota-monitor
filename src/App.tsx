@@ -72,6 +72,39 @@ function detectShell(): "tray" | "settings" | "main" {
   return "main";
 }
 
+/** 语言/主题（用户实测反馈：设置窗切语言主浮窗不跟）——真实壳里是多个独立 WebView 窗口，
+ *  语言状态必须持久化（set_settings → SQLite）并经 settings-changed 事件广播到所有窗口；
+ *  浏览器原型仍走 URL 参数。setters 同时写库，确保重启后保持。 */
+function usePersistedAppearance() {
+  const params = new URLSearchParams(location.search);
+  const [lang, setLangState] = useState<Lang>((params.get("lang") as Lang) || "zh");
+  const [theme, setThemeState] = useState<Theme>((params.get("theme") as Theme) || "dark");
+  useEffect(() => {
+    if (!isTauri) return;
+    invoke<{ lang?: string; theme?: string }>("get_settings").then((s) => {
+      if (s?.lang === "zh" || s?.lang === "en") setLangState(s.lang);
+      if (s?.theme === "auto" || s?.theme === "light" || s?.theme === "dark") setThemeState(s.theme);
+    }).catch(() => {});
+    let un: (() => void) | undefined;
+    listen<{ lang?: string; theme?: string }>("settings-changed", (e) => {
+      const l = e.payload?.lang;
+      if (l === "zh" || l === "en") setLangState(l);
+      const t = e.payload?.theme;
+      if (t === "auto" || t === "light" || t === "dark") setThemeState(t);
+    }).then((f) => { un = f; }).catch(() => {});
+    return () => un?.();
+  }, []);
+  const setLang = (l: Lang) => {
+    setLangState(l);
+    if (isTauri) invoke("set_settings", { lang: l }).catch(() => {});
+  };
+  const setTheme = (t: Theme) => {
+    setThemeState(t);
+    if (isTauri) invoke("set_settings", { theme: t }).catch(() => {});
+  };
+  return { lang, setLang, theme, setTheme };
+}
+
 export function App() {
   const shell = detectShell();
   if (shell === "tray") return <TrayMenuPanel />;
@@ -81,9 +114,7 @@ export function App() {
 
 /** 独立设置窗口（真实壳）；浏览器原型仍走 MainShell 覆盖层以便 ui-check */
 function SettingsShell() {
-  const params = new URLSearchParams(location.search);
-  const [theme, setTheme] = useState<Theme>((params.get("theme") as Theme) || "dark");
-  const [lang, setLang] = useState<Lang>((params.get("lang") as Lang) || "zh");
+  const { lang, setLang, theme, setTheme } = usePersistedAppearance();
   const i18nCtx = useMemo(() => makeT(lang), [lang]);
   const [connectId, setConnectId] = useState<string | null>(null);
   useGlassStrength();
@@ -136,8 +167,7 @@ function SettingsShell() {
 }
 
 function TrayMenuPanel() {
-  const [theme] = useState<Theme>("dark");
-  const [lang] = useState<Lang>("zh");
+  const { lang, theme } = usePersistedAppearance();
   const i18nCtx = useMemo(() => makeT(lang), [lang]);
   const { t } = i18nCtx;
   const [ontop, setOntop] = useState(false);
@@ -146,13 +176,13 @@ function TrayMenuPanel() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     document.documentElement.dataset.tauri = isTauri ? "1" : "0";
-    document.documentElement.lang = "zh-CN";
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
     if (!isTauri) return;
     invoke<boolean>("get_ontop").then(setOntop).catch(() => {});
     const onBlur = () => { invoke("close_tray_menu").catch(() => {}); };
     window.addEventListener("blur", onBlur);
     return () => window.removeEventListener("blur", onBlur);
-  }, [theme]);
+  }, [theme, lang]);
 
   const close = () => { invoke("close_tray_menu").catch(() => {}); };
 
@@ -193,8 +223,7 @@ function TrayMenuPanel() {
 function MainShell() {
   const params = new URLSearchParams(location.search);
   const shot = params.get("shot");
-  const [theme, setTheme] = useState<Theme>((params.get("theme") as Theme) || "dark");
-  const [lang, setLang] = useState<Lang>((params.get("lang") as Lang) || "zh");
+  const { lang, setLang, theme, setTheme } = usePersistedAppearance();
   const [view, setView] = useState<View>(engine.defaultView as View);
   const [detailId, setDetailId] = useState<string | undefined>();
   const [historyFrom, setHistoryFrom] = useState<"overview" | "detail">("overview");
@@ -247,6 +276,7 @@ function MainShell() {
       .then((s) => {
         const dv = s?.defaultView;
         if (dv === "collapsed" || dv === "overview") {
+          lastDvRef.current = dv;
           engine.setDefaultView(dv);
           setView((v) => (v === "collapsed" || v === "overview" ? dv : v));
         }
@@ -384,15 +414,19 @@ function MainShell() {
     return () => window.removeEventListener("proto-connect", h);
   }, []);
 
-  // 跨窗同步：设置里的默认视图/Providers 显隐 → 主浮窗立即生效
+  // 跨窗同步：设置里的默认视图/Providers 显隐 → 主浮窗立即生效。
+  // ⚠️ 只在 defaultView **真正变化**时才应用（用户实测：切语言/主题也会携带 defaultView
+  // 重发事件，无条件应用会把手动的精简/详细选择拽回默认视图）。
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const lastDvRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!isTauri) return;
     let un1: (() => void) | undefined;
     let un2: (() => void) | undefined;
     listen<{ defaultView?: string }>("settings-changed", (e) => {
       const dv = e.payload?.defaultView;
-      if (dv === "collapsed" || dv === "overview") {
+      if ((dv === "collapsed" || dv === "overview") && dv !== lastDvRef.current) {
+        lastDvRef.current = dv;
         engine.setDefaultView(dv);
         setView((v) => (v === "collapsed" || v === "overview" ? dv : v));
       }

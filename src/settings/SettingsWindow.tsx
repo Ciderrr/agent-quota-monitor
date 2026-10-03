@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getVersion } from "@tauri-apps/api/app";
 import { bridge, isTauri } from "../bridge";
 import { PROVIDERS } from "../types/provider";
 import { useI18n, type Lang } from "../i18n";
@@ -39,7 +40,13 @@ export function SettingsWindow({
   const [snaps, setSnaps] = useState<Record<string, { connectionState?: string; errorState?: { code?: string } }>>({});
   const [creds, setCreds] = useState<Record<string, boolean>>({});
   const [codexSess, setCodexSess] = useState<boolean | null>(null);
+  const [appVersion, setAppVersion] = useState("");
   const busyRef = useRef(false);
+
+  useEffect(() => {
+    // About 页版本号：从 Tauri 运行时读取（与安装包版本永远一致，不再手写）
+    getVersion().then((v) => setAppVersion(v)).catch(() => {});
+  }, []);
 
   const refreshStatus = () => {
     if (!isTauri) return;
@@ -271,7 +278,7 @@ export function SettingsWindow({
             {section === "providers" && (
               <>
                 <p className="helper quiet" style={{ marginTop: 0 }}>
-                  如需移除已保存的 API Key 或会话，请到「隐私」页清除。当前版本暂时一次只能监控一个账户。
+                  {t("settings.providers_helper")}
                 </p>
                 {PROVIDERS.map((p) => {
                   const enabled = enabledMap[p.id] ?? true;
@@ -303,16 +310,16 @@ export function SettingsWindow({
                         <span className="desc" style={{ marginTop: 0 }}>
                           {/* 连接状态只说一次：未配置/未连接/已连接/…，不叠错误短词 */}
                           {credMissing
-                            ? "凭据不存在（可能已被清除），请重新输入 Key"
+                            ? t("settings.cred_missing")
                             : conn === "not_connected" && (snap?.errorState?.code === "not_configured" || !snap?.errorState)
-                              ? "未配置（尚未添加 API Key）"
+                              ? t("settings.cred_unset")
                               : `${t("settings.provider_state")}：${t(("state." + conn) as any)}${(() => { const e = snap?.errorState?.code; if (!e || e === "not_configured") return ""; const err = t(("error." + e) as any); const st = t(("state." + conn) as any); return err === st ? "" : ` · ${err}`; })()}`}
-                          {!enabled ? " · 已隐藏" : ""}
+                          {!enabled ? t("settings.hidden_suffix") : ""}
                         </span>
                         {testing === "ok" && <span className="desc" style={{ marginTop: 0, color: "var(--fg)" }}>✓ {t("connect.test_ok")}</span>}
                         {p.id === "codex" && codexSess !== null && (
                           <span className="desc" style={{ marginTop: 0 }}>
-                            {codexSess ? "隔离会话：已登录（本应用专用目录，不影响系统 Codex）" : "隔离会话：未登录"}
+                            {codexSess ? t("settings.codex_sess_in") : t("settings.codex_sess_out")}
                           </span>
                         )}
                       </div>
@@ -366,7 +373,7 @@ export function SettingsWindow({
                       <div key={id} className="cred-row">
                         <span className="cred-id">{slot}</span>
                         <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <span className="cred-state">{set ? t("settings.credential_set") : "未配置"}</span>
+                          <span className="cred-state">{set ? t("settings.credential_set") : t("settings.credential_unset")}</span>
                           <button className="mini-btn" disabled={!set} onClick={() => clearCred(id)}>{t("action.clear")}</button>
                         </span>
                       </div>
@@ -396,12 +403,12 @@ export function SettingsWindow({
                     <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <span className="cred-state">
                         {snaps.codex?.connectionState === "connected" || snaps.codex?.connectionState === "degraded"
-                          ? "本应用已连接 Codex"
-                          : "本应用未连接"}
+                          ? t("settings.codex_app_connected")
+                          : t("settings.codex_app_disconnected")}
                       </span>
                       <button
                         className="mini-btn"
-                        title="仅断开本应用对 Codex 的监控，不影响你电脑上的 Codex 登录"
+                        title={t("settings.disconnect_monitor_title")}
                         onClick={() => {
                           invoke("codex_logout").then(() => {
                             bridge.getSnapshots().then((all) => {
@@ -412,7 +419,7 @@ export function SettingsWindow({
                           }).catch(() => {});
                         }}
                       >
-                        断开监控
+                        {t("settings.disconnect_monitor")}
                       </button>
                     </span>
                   </div>
@@ -422,8 +429,22 @@ export function SettingsWindow({
 
             {section === "about" && (
               <>
-                <div className="kv"><span>{t("settings.about_version")}</span><b>0.1.0-proto (Gate C)</b></div>
-                <div className="kv"><span>{t("settings.about_repo")}</span><b>github.com/…/agent-quota-monitor</b></div>
+                <div className="kv"><span>{t("settings.about_version")}</span><b>{appVersion || "—"}</b></div>
+                <div className="kv">
+                  <span>{t("settings.about_repo")}</span>
+                  <b>
+                    <a
+                      className="link-btn"
+                      href="https://github.com/Ciderrr/agent-quota-monitor"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const url = "https://github.com/Ciderrr/agent-quota-monitor";
+                        if (isTauri) invoke("open_external", { url }).catch(() => {});
+                        else window.open(url, "_blank");
+                      }}
+                    >github.com/Ciderrr/agent-quota-monitor</a>
+                  </b>
+                </div>
                 <p className="helper quiet">{t("settings.about_license")}</p>
               </>
             )}
