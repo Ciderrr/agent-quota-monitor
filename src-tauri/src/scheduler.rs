@@ -298,6 +298,35 @@ fn provider_display(id: &str) -> &'static str {
     }
 }
 
+/// 通知正文里的桶显示名：必须具体到「哪个限额」（用户反馈：多限额 Provider 要能区分
+/// 是 5h 还是周限额触发的告警，"codex/primary" 这种内部 id 对用户无意义）。
+fn bucket_display(b: &QuotaBucket) -> String {
+    if b.id.ends_with("/all") {
+        return "积分包合计".into();
+    }
+    let period = match &b.period_type {
+        PeriodType::Rolling { window_mins } => {
+            let m = *window_mins;
+            if m > 0 && m % 1440 == 0 {
+                format!("{}天限额", m / 1440)
+            } else if m > 0 && m % 60 == 0 {
+                format!("{}小时限额", m / 60)
+            } else {
+                format!("{m}分钟限额")
+            }
+        }
+        PeriodType::Weekly => "周限额".into(),
+        PeriodType::Monthly => "月度限额".into(),
+        PeriodType::Daily => "日限额".into(),
+        PeriodType::BillingCycle => "账期限额".into(),
+        PeriodType::Custom { raw } => raw.clone(),
+    };
+    match b.label_raw.as_deref() {
+        Some(raw) if !raw.is_empty() && raw != period => format!("{raw} · {period}"),
+        _ => period,
+    }
+}
+
 /// 额度阈值通知（warn/crit 两级，Windows 系统通知）。
 /// 与 UI 同一套代表桶语义：reserve 类桶不参与告警（reserve 剩 0% 是常态，用户实测反馈）；
 /// 存在聚合桶（*/all）时只看聚合桶。同桶同级只提醒一次，缓解（crit→warn）不打扰，
@@ -347,8 +376,7 @@ fn maybe_notify_quota(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::
         }
         store.kv_set(&key, level);
         let title = if level == "crit" { "额度即将耗尽" } else { "额度偏低" };
-        let label = b.label_raw.clone().unwrap_or_else(|| b.id.clone());
-        let body = format!("{} · {}：剩余 {:.0}%", provider_display(&s.provider_id), label, pct);
+        let body = format!("{} · {}：剩余 {:.0}%", provider_display(&s.provider_id), bucket_display(b), pct);
         eprintln!("[aqm] notify quota {} {} ({}%): {}", s.provider_id, level, pct, b.id);
         let _ = app.notification().builder().title(title).body(body).show();
     }

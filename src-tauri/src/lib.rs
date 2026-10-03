@@ -20,6 +20,23 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}, Emitter, Manager,
 };
 
+/// Windows 通知身份自注册：把 AUMID（identifier）登记到 HKCU\Software\Classes\AppUserModelId，
+/// DisplayName 为软件名。与 NSIS 安装器同款做法、幂等；让绿色版/复制运行的 exe 发通知时
+/// 显示「Agent Quota Monitor」而非退化为 PowerShell 品牌（tauri-plugin-notification 只在
+/// 非 target 目录运行时才携带 AUMID，见插件 desktop.rs 的 target-dir 判断）。
+#[cfg(windows)]
+fn register_toast_identity(app: &tauri::AppHandle) {
+    let identifier = app.config().identifier.clone();
+    let key_path = format!(r"Software\Classes\AppUserModelId\{identifier}");
+    let hkcu = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER);
+    match hkcu.create_subkey(&key_path) {
+        Ok((key, _)) => {
+            let _ = key.set_value("DisplayName", &"Agent Quota Monitor");
+        }
+        Err(e) => eprintln!("[aqm] toast identity registration failed: {e}"),
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
@@ -184,6 +201,10 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            // Windows 通知身份（AUMID）注册：幂等，失败不影响主流程
+            #[cfg(windows)]
+            register_toast_identity(app.handle());
+
             // 存储
             let store = store::Store::open().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
             let settings_json = store.kv_get("settings");
