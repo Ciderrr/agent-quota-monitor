@@ -6,23 +6,19 @@
 
 - [PORTABLE_FIRST.md](PORTABLE_FIRST.md) — **最高级产品原则**：Account-level Monitor、双层架构、Clean-PC 验收、Gate B 自审
 
-## 根目录规格
+## 根目录规格（什么问题查哪份）
 
-| 文档 | 内容 |
+| 文档 | 用途（何时读） |
 |---|---|
-| [PRODUCT_SPEC.md](PRODUCT_SPEC.md) | 产品定位、范围、v1 Provider 矩阵、成功标准 |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Tauri 2 双层架构、模块、数据流、Managed Runtime、性能设计 |
-| [DATA_MODEL.md](DATA_MODEL.md) | 统一快照模型（动态桶/开放枚举）、连接 vs 安装状态、SQLite |
-| [PROVIDER_INTERFACE.md](PROVIDER_INTERFACE.md) | 适配器 trait、connectionMethods/localEnhancements、ManagedProviderRuntime、IPC 面 |
-| [SECURITY.md](../SECURITY.md) | 凭证存储、redaction、WebView2 会话隔离、威胁模型 |
-| [REFRESH_STRATEGY.md](REFRESH_STRATEGY.md) | 智能刷新（不依赖本地 Agent）、退避、活动联动 |
-| [UI_SPEC.md](UI_SPEC.md) | 视觉 token、两态布局、Connect 页面、Mock 场景、i18n、验收清单 |
-| [IMPLEMENTATION_PLAN.md](../.agent/IMPLEMENTATION_PLAN.md) | Phase 1–4 与 Gate C–F |
-| [CHANGELOG_GATE_A1.md](../.agent/CHANGELOG_GATE_A1.md) | Gate A.1 修正与运行时验证 |
-| [CHANGELOG_GATE_B.md](../.agent/CHANGELOG_GATE_B.md) | Portable-first 修订 + MiMo Round 2 + Phase 1 交付 |
-| [CHANGELOG_GATE_D.md](../.agent/CHANGELOG_GATE_D.md) | Tauri 壳 + DeepSeek 垂直切片 |
-| [CHANGELOG_GATE_E.md](../.agent/CHANGELOG_GATE_E.md) | Codex Runtime / MiMo 会话 / UI 与安全实测 |
-| [CHANGELOG_GATE_F.md](../.agent/CHANGELOG_GATE_F.md) | 性能实测 / 安全审计与 CI 断言 / NSIS 打包 / 活动检测 |
+| [PRODUCT_SPEC.md](PRODUCT_SPEC.md) | 产品边界：做什么、明确不做什么、目标用户与成功标准——范围有争议时查这里 |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 动手改代码前先读：模块怎么分、数据怎么流、为什么 Rust 侧拥有全部 Provider 知识 |
+| [DATA_MODEL.md](DATA_MODEL.md) | 涉及快照/额度桶/历史表字段的改动前查：字段语义、动态桶降级规则、置信度 |
+| [PROVIDER_INTERFACE.md](PROVIDER_INTERFACE.md) | 新增或修改 Provider 时照此契约实现：适配器 trait、connectionMethods、IPC 面 |
+| [SECURITY.md](../SECURITY.md) | 安全红线：凭证存储、redaction、WebView2 会话隔离——涉及凭据或网络的 PR 必读 |
+| [REFRESH_STRATEGY.md](REFRESH_STRATEGY.md) | 调刷新频率/退避/抖动参数前读：设计依据与活动联动规则 |
+| [UI_SPEC.md](UI_SPEC.md) | 改 UI 前读：视觉 token、两态布局、Connect 流程与 §12 验收清单 |
+| [IMPLEMENTATION_PLAN.md](../.agent/IMPLEMENTATION_PLAN.md) | 回顾 Phase 1–4 与 Gate C–F 的划分和当前进度 |
+| CHANGELOG_GATE_A1 / B / D / E / F（.agent/） | 各 Gate 的交付记录与实测证据，追溯"当时为什么这么做"：[A1](../.agent/CHANGELOG_GATE_A1.md) · [B](../.agent/CHANGELOG_GATE_B.md) · [D](../.agent/CHANGELOG_GATE_D.md) · [E](../.agent/CHANGELOG_GATE_E.md) · [F](../.agent/CHANGELOG_GATE_F.md) |
 
 ## Gate F 工具与报告
 

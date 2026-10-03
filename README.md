@@ -1,8 +1,8 @@
 # Agent Quota Monitor
 
-一个 **Local First** 的 Windows 桌面浮窗，实时监控你的 AI 订阅额度与积分：Codex（ChatGPT）、MiMo Token Plan、WorkBuddy Credits、DeepSeek 余额、ZCode·GLM Coding Plan。
+一个 **完全开源**、**Local First** 的 Windows 桌面浮窗，实时监控你的 AI 订阅额度与积分：Codex（ChatGPT）、MiMo Token Plan、WorkBuddy Credits、DeepSeek 余额、ZCode·GLM Coding Plan。
 
-A **Local First** Windows desktop widget that monitors your AI subscription quotas and credits: Codex (ChatGPT), MiMo Token Plan, WorkBuddy Credits, DeepSeek balance, ZCode·GLM Coding Plan.
+A **fully open source**, **Local First** Windows desktop widget that monitors your AI subscription quotas and credits: Codex (ChatGPT), MiMo Token Plan, WorkBuddy Credits, DeepSeek balance, ZCode·GLM Coding Plan.
 
 ![tech](https://img.shields.io/badge/Tauri%202-Rust-blue) ![ui](https://img.shields.io/badge/UI-React%20%2B%20TS-cyan) ![license](https://img.shields.io/badge/License-Apache--2.0-green)
 
@@ -24,17 +24,21 @@ A **Local First** Windows desktop widget that monitors your AI subscription quot
 | DeepSeek | 余额 + 余额历史 | 官方 Balance API | 仅余额，不做差值推算 |
 | ZCode · GLM Coding Plan | 额度桶 | API Key（凭据管理器） | 适配器就绪，待真实 Key 验证 |
 
-## 构建 / Build from Source
+## 安装 / Install
 
-前置：Node 18+、Rust (MSVC)、WebView2（Win11 预装）。
-
-```bash
-npm install
-npm run tauri dev     # 开发（前端来自 localhost:5173）
-npm run tauri build   # 产出 NSIS 安装包（src-tauri/target/release/bundle/nsis/）
-```
+**普通用户无需配置任何环境**：前往 [Releases](https://github.com/Ciderrr/agent-quota-monitor/releases/latest) 下载安装包，双击安装即可（WebView2 为 Win11 系统组件，无需额外安装）。
 
 安装包特性：中英双语选择、品牌开场动画、安装前自动关闭运行中的实例。
+
+## 从源码构建 / Build from Source（仅开发者需要）
+
+前置：Node 18+、Rust (MSVC)。以下命令只服务于"从源码编译"这一件事：
+
+```bash
+npm install          # 安装前端开发依赖（React/Vite/TypeScript 等，装入 node_modules/；不是安装 Node，也不是安装本软件）
+npm run tauri dev    # 开发模式运行：Rust 后端 + 前端热更新（localhost:5173），改代码即时生效
+npm run tauri build  # 生成 NSIS 安装包（src-tauri/target/release/bundle/nsis/），产物需手动安装
+```
 
 ## 安全与隐私 / Security
 
@@ -45,7 +49,16 @@ npm run tauri build   # 产出 NSIS 安装包（src-tauri/target/release/bundle/
 
 ## 文档 / Docs
 
-[ARCHITECTURE](docs/ARCHITECTURE.md) · [DATA_MODEL](docs/DATA_MODEL.md) · [PROVIDER_INTERFACE](docs/PROVIDER_INTERFACE.md) · [PORTABLE_FIRST](docs/PORTABLE_FIRST.md) · [REFRESH_STRATEGY](docs/REFRESH_STRATEGY.md) · [SECURITY(SECURITY.md) · 更多见 [docs/README](docs/README.md)
+| 文档 | 用途 |
+|---|---|
+| [PORTABLE_FIRST](docs/PORTABLE_FIRST.md) | 最高产品原则：账户级接入、Clean-PC 即装即连的架构依据 |
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | 系统架构：模块划分、数据流、Codex Managed Runtime 设计，动手改代码前先读 |
+| [DATA_MODEL](docs/DATA_MODEL.md) | 统一数据模型：额度桶/余额/用量字段语义，涉及快照或历史表改动时查这里 |
+| [PROVIDER_INTERFACE](docs/PROVIDER_INTERFACE.md) | 新增/修改 Provider 的接入契约（适配器 trait、连接方式、IPC 面） |
+| [REFRESH_STRATEGY](docs/REFRESH_STRATEGY.md) | 刷新调度设计：退避、抖动、活动联动的依据，调刷新参数前读 |
+| [UI_SPEC](docs/UI_SPEC.md) | 浮窗视觉与交互规格：视图布局、主题、i18n、§12 验收清单 |
+| [SECURITY](SECURITY.md) | 安全模型与威胁分析：凭证存储、会话隔离、网络白名单 |
+| [docs/README](docs/README.md) | 文档总索引：含 ADR 决策记录、各 Provider 端点调研证据与 Gate 交付记录 |
 
 ## 免责声明 / Disclaimer
 
