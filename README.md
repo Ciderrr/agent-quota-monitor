@@ -15,7 +15,7 @@ Codex（ChatGPT）· MiMo Token Plan · WorkBuddy Credits · DeepSeek · ZCode·
 
 [安装](#-安装--install) · [特性](#-特性--features) · [监控能力](#-监控能力--what-we-monitor) · [预测算法](docs/PREDICTION_ALGORITHM.md) · [文档](#-文档--docs)
 
-<!-- 主视觉图：待用户审核后插入（docs/ui/hero.png） -->
+<img src="docs/ui/hero.png" width="860" alt="Agent Quota Monitor — 精简与详细视图 / Compact and Detailed views" />
 
 </div>
 
