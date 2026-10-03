@@ -54,6 +54,13 @@ pub fn list_providers() -> Vec<ProviderMetaDto> {
     metas()
 }
 
+/// v0.2 洞察（燃烧预测 + 余额趋势 + 切换建议）：调度器每 tick 重算并经
+/// insights-updated 广播；本命令供窗口启动时拉取初始值
+#[tauri::command]
+pub fn get_insights(rt: State<SharedRuntime>) -> crate::predict::Insights {
+    rt.lock().unwrap().insights.clone()
+}
+
 #[tauri::command]
 pub fn get_snapshots(rt: State<SharedRuntime>) -> Vec<Snapshot> {
     let r = rt.lock().unwrap();

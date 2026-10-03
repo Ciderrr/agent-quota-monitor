@@ -33,6 +33,8 @@ pub struct Runtime {
     pub theme: String,
     /// 会话型 Provider 最近一次真实会话读取（ms）；后台验证 30min 判据
     pub last_session_read_ms: HashMap<String, i64>,
+    /// v0.2 洞察（燃烧预测 + 余额趋势 + 切换建议）：每 tick 重算，变化才广播
+    pub insights: crate::predict::Insights,
     /// 会话读取进行中标志（防重入：刷新连点 / ConnectFlow 轮询 / 后台验证互相排队）
     pub read_in_progress: HashMap<String, bool>,
 }
@@ -164,8 +166,7 @@ pub async fn tick(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::stor
         );
     }
 
-    // 会话型 Provider 后台验证（②0/④）：每 30 分钟对**隐藏的**登录窗做一次真实会话读取，
-    // 会话失效 → 立即标 auth_required 并广播，用户无需手动刷新才发现。
+    // 会话型 Provider 后台验证（②0/④）：每 30 分钟对**隐藏的**登录窗做一次真实会话读取，    // 会话失效 → 立即标 auth_required 并广播，用户无需手动刷新才发现。
     // 窗口可见（用户正在登录）时绝不触发，杜绝打断登录流程（②2）。
     // last_session_read_ms 由 session_read 本体在开始时记账（含手动/ConnectFlow 触发）。
     for id in ["mimo", "workbuddy"] {
@@ -196,6 +197,22 @@ pub async fn tick(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::stor
                 eprintln!("[aqm] session verify {id2}: {e}");
             }
         });
+    }
+
+    // v0.2 洞察：燃烧预测 + 余额趋势 + 切换建议——每 tick 重算，变化才广播
+    let ins = compute_insights(rt, store);
+    let changed = {
+        let mut r = rt.lock().unwrap();
+        if r.insights != ins {
+            r.insights = ins.clone();
+            true
+        } else {
+            false
+        }
+    };
+    if changed {
+        maybe_notify_burn(&app, rt, store, &ins);
+        let _ = app.emit("insights-updated", &ins);
     }
 }
 
@@ -299,6 +316,143 @@ fn provider_display(id: &str) -> &'static str {
         "deepseek" => "DeepSeek",
         "zcode" => "ZCode·GLM",
         _ => "Provider",
+    }
+}
+
+/// v0.2 洞察计算：桶级燃烧预测（近 24h 样本）+ DeepSeek 余额趋势 + 切换建议。
+/// 全部基于既有快照历史，零新数据源；纯计算，失败安静降级为空洞察。
+pub fn compute_insights(rt: &SharedRuntime, store: &crate::store::Store) -> crate::predict::Insights {
+    use crate::predict::*;
+    let mut ins = Insights::default();
+    let now = chrono::Utc::now().timestamp_millis();
+    let snaps: Vec<Snapshot> = rt.lock().unwrap().snapshots.values().cloned().collect();
+    for s in &snaps {
+        if s.connection_state != "connected" && s.connection_state != "degraded" {
+            continue;
+        }
+        // 桶级燃烧预测：每个桶一条序列，fit 内部处理重置截断
+        let series = store.quota_series(&s.provider_id, 1);
+        let mut preds = Vec::new();
+        for (bucket_id, title, pts) in &series {
+            let Some(fit) = fit_burn(pts) else { continue };
+            let Some(conf) = confidence_of(&fit) else { continue };
+            let reset_ms = s
+                .quota_buckets
+                .iter()
+                .find(|b| &b.id == bucket_id)
+                .and_then(|b| b.reset_at.as_deref())
+                .and_then(iso_to_ms);
+            if let Some(p) = build_bucket_prediction(&s.provider_id, bucket_id, title.clone(), &fit, conf, reset_ms, now) {
+                preds.push(p);
+            }
+        }
+        if !preds.is_empty() {
+            ins.predictions.insert(s.provider_id.clone(), preds);
+        }
+        // DeepSeek 余额趋势（¥/小时斜率 → 日均消耗 → 可支撑天数）
+        if s.provider_id == crate::deepseek::ID {
+            let raw = store.balance_series_raw(&s.provider_id, 14);
+            if let Some(fit) = fit_burn(&raw) {
+                if let Some(conf) = confidence_of(&fit) {
+                    if fit.slope_per_hour < -0.005 {
+                        let daily = -fit.slope_per_hour * 24.0;
+                        if let Some(b) = s.balances.first() {
+                            if let Some(total) = b.total {
+                                if daily > 0.01 {
+                                    ins.balance.insert(
+                                        s.provider_id.clone(),
+                                        BalancePrediction {
+                                            provider_id: s.provider_id.clone(),
+                                            daily_burn: daily,
+                                            currency: b.currency.clone(),
+                                            days_left: total / daily,
+                                            confidence: conf.into(),
+                                        },
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // 切换建议：代表桶剩余 < 告警阈值 → 其他已连接 Provider 按余量降序取前 3
+    let warn = rt.lock().unwrap().thresholds.warn as f64;
+    struct Rep {
+        id: String,
+        name: String,
+        pct: Option<f64>,
+        reset_at: Option<String>,
+        connected: bool,
+    }
+    let reps: Vec<Rep> = snaps
+        .iter()
+        .map(|s| {
+            let rep = representative_bucket(&s.quota_buckets);
+            Rep {
+                id: s.provider_id.clone(),
+                name: provider_display(&s.provider_id).to_string(),
+                pct: rep.as_ref().and_then(|b| b.remaining_percent),
+                reset_at: rep.and_then(|b| b.reset_at.clone()),
+                connected: s.connection_state == "connected" || s.connection_state == "degraded",
+            }
+        })
+        .collect();
+    for r in &reps {
+        let Some(p) = r.pct else { continue };
+        if !r.connected || p >= warn {
+            continue;
+        }
+        let mut alts: Vec<Alternative> = reps
+            .iter()
+            .filter(|o| o.id != r.id && o.connected && o.pct.is_some())
+            .map(|o| Alternative {
+                provider_id: o.id.clone(),
+                name: o.name.clone(),
+                remaining_pct: o.pct,
+                reset_at: o.reset_at.clone(),
+            })
+            .collect();
+        alts.sort_by(|a, b| {
+            b.remaining_pct
+                .partial_cmp(&a.remaining_pct)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        alts.truncate(3);
+        if !alts.is_empty() {
+            ins.alternatives.insert(r.id.clone(), alts);
+        }
+    }
+    ins
+}
+
+/// 燃烧型通知：预测耗尽 ≤ 60 分钟时弹一次（去重），回升 > 120 分钟自动复位
+fn maybe_notify_burn(app: &tauri::AppHandle, rt: &SharedRuntime, store: &crate::store::Store, ins: &crate::predict::Insights) {
+    let enabled = { rt.lock().unwrap().notify_enabled };
+    if !enabled {
+        return;
+    }
+    let now = chrono::Utc::now().timestamp_millis();
+    for (pid, preds) in &ins.predictions {
+        for p in preds {
+            let Some(ex) = crate::predict::iso_to_ms(&p.exhaust_at) else { continue };
+            let mins = (ex - now) as f64 / 60_000.0;
+            let key = format!("notif::burn::{}::{}", pid, p.bucket_id);
+            if mins <= 60.0 {
+                if store.kv_get(&key).is_none() {
+                    store.kv_set(&key, "1");
+                    let m = mins.round() as i64;
+                    let human = if m >= 60 { format!("{}小时{}分", m / 60, m % 60) } else { format!("{m}分钟") };
+                    let _ = app.notification().builder().title("额度即将耗尽").body(format!(
+                        "{} · {}：按当前速度约 {}后耗尽",
+                        provider_display(pid), p.label, human
+                    )).show();
+                }
+            } else if mins > 120.0 && store.kv_get(&key).is_some() {
+                store.kv_set(&key, "");
+            }
+        }
     }
 }
 

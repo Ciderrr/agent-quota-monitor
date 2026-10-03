@@ -7,6 +7,7 @@ pub mod credentials;
 pub mod deepseek;
 pub mod http;
 pub mod mimo;
+pub mod predict;
 pub mod scheduler;
 pub mod store;
 pub mod types;
@@ -263,6 +264,7 @@ pub fn run() {
                 kv_family,
                 lang,
                 theme,
+                insights: Default::default(),
                 last_fetch_ms: HashMap::new(),
                 last_session_read_ms: HashMap::new(),
                 read_in_progress: HashMap::new(),
@@ -358,6 +360,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::list_providers,
+            commands::get_insights,
             commands::get_snapshots,
             commands::refresh_now,
             commands::set_provider_enabled,

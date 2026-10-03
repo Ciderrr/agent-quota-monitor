@@ -133,6 +133,27 @@ impl Store {
         per_bucket.into_iter().map(|(id, (title, pts))| (id, title, pts)).collect()
     }
 
+    /// 余额原始序列（v0.2 余额趋势预测）：近 N 天 (ts_ms, total)，不去重到天
+    pub fn balance_series_raw(&self, provider_id: &str, days: i64) -> Vec<(i64, f64)> {
+        let c = self.conn.lock().ok();
+        let Some(c) = c else { return vec![] };
+        let since = chrono::Utc::now().timestamp_millis() - days * 86_400_000;
+        let mut stmt = match c.prepare(
+            "SELECT ts, total FROM balance_samples WHERE provider_id = ?1 AND ts >= ?2 AND total IS NOT NULL ORDER BY ts",
+        ) {
+            Ok(s) => s,
+            Err(_) => return vec![],
+        };
+        let rows: Vec<(i64, String)> = stmt
+            .query_map([provider_id, &since.to_string()], |r| Ok((r.get(0)?, r.get(1)?)))
+            .ok()
+            .map(|it| it.filter_map(|r| r.ok()).collect())
+            .unwrap_or_default();
+        rows.into_iter()
+            .filter_map(|(ts, t)| t.parse::<f64>().ok().map(|v| (ts, v)))
+            .collect()
+    }
+
     /// 近 N 天余额序列（History；只如实呈现，不做差值推算——Gate A.1 规则）
     pub fn balance_series(&self, provider_id: &str, days: i64) -> Vec<(String, f64)> {        let c = self.conn.lock().ok();
         let Some(c) = c else { return vec![] };

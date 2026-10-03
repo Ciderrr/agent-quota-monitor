@@ -220,6 +220,14 @@ const zh = {
   "connect.wb.wait_login": "请在官方窗口完成登录，登录后会自动读取积分用量。",
   "connect.wb.retry_hint": "仍未读到积分。若官方窗口已显示积分用量，请点「打开官方登录」聚焦窗口后再等一轮。",
   "connect.auto_reading_credits": "正在自动读取积分，无需点击",
+  "collapsed.exhaust_hint": "预计{time}后耗尽",
+  "predict.line": "按当前速度 · 预计 {time} 后耗尽",
+  "predict.range": "区间 {low} ~ {high} · 基于近 {hours} 样本",
+  "predict.conf.high": "置信高",
+  "predict.conf.medium": "置信中",
+  "predict.conf.low": "置信低",
+  "predict.balance_line": "按近期趋势，余额约可支撑 {days} 天（日均 -{rate}）",
+  "switch.title": "切换建议 · 其他可用额度",
   "proto.note": "UI Prototype · Mock 数据",
 };
 
@@ -442,6 +450,14 @@ const en: typeof zh = {
   "connect.wb.wait_login": "Sign in inside the official window; credits usage is read automatically afterwards.",
   "connect.wb.retry_hint": "Still nothing. If the official window already shows your credits usage, click \"Open official sign-in\" to focus it and wait another round.",
   "connect.auto_reading_credits": "Reading credits automatically — no clicks needed",
+  "collapsed.exhaust_hint": "exhausts in ~{time}",
+  "predict.line": "At this pace · exhausts in ~{time}",
+  "predict.range": "Range {low}–{high} · based on the last {hours} of samples",
+  "predict.conf.high": "high confidence",
+  "predict.conf.medium": "medium confidence",
+  "predict.conf.low": "low confidence",
+  "predict.balance_line": "At the recent trend, the balance lasts ~{days} more days (≈{rate}/day)",
+  "switch.title": "Alternatives · other available quota",
   "proto.note": "UI Prototype · Mock data",
 };
 

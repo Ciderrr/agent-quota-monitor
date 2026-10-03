@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ProviderSnapshot, QuotaBucket } from "../types/provider";
+import type { ProviderSnapshot, QuotaBucket, Insights, BucketPrediction } from "../types/provider";
 import { metaOf } from "../types/provider";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -14,9 +14,11 @@ import { GlassSurface } from "../ui/GlassSurface";
 import { HistoryPanel } from "./HistoryPanel";
 
 export function ExpandedWidget({
-  snapshots, view, detailId, onBack, onBackHistory, onOpenDetail, onShowHistory, onRefresh, lastAllUpdated, onCollapse, showCollapse, onOpenSettings,
+  snapshots, insights, view, detailId, onBack, onBackHistory, onOpenDetail, onShowHistory, onRefresh, lastAllUpdated, onCollapse, showCollapse, onOpenSettings,
 }: {
   snapshots: ProviderSnapshot[];
+  /** v0.2 洞察（真实壳）；浏览器原型为 null → 预测/建议不显示 */
+  insights: Insights | null;
   view: "overview" | "detail" | "history";
   detailId?: string;
   onBack: () => void;
@@ -64,7 +66,7 @@ export function ExpandedWidget({
           <button className="icon-btn" aria-label={t("action.history")} onClick={onShowHistory}><IconHistory /></button>
         </div>
         <div className="x-body">
-          <ProviderDetail snapshot={s} onOpenSettings={onOpenSettings} />
+          <ProviderDetail snapshot={s} insights={insights} onOpenSettings={onOpenSettings} />
         </div>
         <Foot
           meta={updatedAgo(s.fetchedAt, lang)}
@@ -260,8 +262,8 @@ function OverviewBlock({ s, onOpen }: { s: ProviderSnapshot; onOpen: () => void 
   );
 }
 
-/** Provider 详情：全部桶 + Reset 明细 + 来源 */
-export function ProviderDetail({ snapshot: s, onOpenSettings }: { snapshot: ProviderSnapshot; onOpenSettings?: (section?: string) => void }) {
+/** Provider 详情：全部桶 + 燃烧预测 + 切换建议 + Reset 明细 + 来源 */
+export function ProviderDetail({ snapshot: s, insights, onOpenSettings }: { snapshot: ProviderSnapshot; insights: Insights | null; onOpenSettings?: (section?: string) => void }) {
   const { t, lang } = useI18n();
   const hasErr = s.connectionState === "not_connected" || s.connectionState === "auth_required" || s.connectionState === "disconnected";
   // 会话型 Provider（MiMo/WorkBuddy）：登录失效时给一键重登，不再让用户空按刷新
@@ -325,8 +327,31 @@ export function ProviderDetail({ snapshot: s, onOpenSettings }: { snapshot: Prov
         </div>
       )}
 
-      {/* ②3：详情页逐包展示，聚合桶（id 以 /all 结尾）不重复出现 */}
-      {s.quotaBuckets.filter((b) => !isAggregateBucket(b)).map((b) => <Bucket key={b.id} b={b} />)}
+      {/* v0.2：逐桶展示 + 燃烧预测行（有预测才显示，绝不硬造） */}
+      {s.quotaBuckets.filter((b) => !isAggregateBucket(b)).map((b) => {
+        const pred = insights?.predictions?.[s.providerId]?.find((p) => p.bucketId === b.id);
+        return (
+          <div key={b.id}>
+            <Bucket b={b} />
+            {pred && <PredictionLine p={pred} />}
+          </div>
+        );
+      })}
+
+      {/* v0.2 切换建议：Rust 侧判定该 Provider 余量已低于告警阈值时才出现 */}
+      {(insights?.alternatives?.[s.providerId]?.length ?? 0) > 0 && (
+        <div className="bucket">
+          <div className="bucket-head">
+            <span className="bucket-label">{t("switch.title")}</span>
+          </div>
+          {insights!.alternatives[s.providerId].map((a) => (
+            <div className="kv" key={a.providerId}>
+              <span>{a.name}</span>
+              <b>{a.remainingPct !== undefined ? `${Math.round(a.remainingPct)}%` : "—"}</b>
+            </div>
+          ))}
+        </div>
+      )}
 
       {s.resetOpportunities.map((r) => (
         <div key={r.id} className="bucket">
@@ -363,7 +388,39 @@ export function ProviderDetail({ snapshot: s, onOpenSettings }: { snapshot: Prov
           {b.toppedUp != null && <div className="kv"><span>{t("balance.topped")}</span><b>{money(b.toppedUp, b.currency)}</b></div>}
         </div>
       ))}
+
+      {/* v0.2 余额趋势（DeepSeek）：真实余额历史的线性外推，仅估趋势 */}
+      {insights?.balance?.[s.providerId] && (
+        <div className="bucket">
+          <div className="err-line">
+            <span className="dot stale" />
+            {t("predict.balance_line", {
+              days: insights.balance[s.providerId].daysLeft.toFixed(1),
+              rate: insights.balance[s.providerId].dailyBurn.toFixed(2),
+            })}
+            <span className="pb-plan"> · {t(("predict.conf." + insights.balance[s.providerId].confidence) as any)}</span>
+          </div>
+        </div>
+      )}
     </>
+  );
+}
+
+/** v0.2 燃烧预测行：区间 + 置信度，绝不显示伪精确点估计 */
+function PredictionLine({ p }: { p: BucketPrediction }) {
+  const { t, lang } = useI18n();
+  const hours = p.windowHours < 1 ? `${Math.round(p.windowHours * 60)}m` : `${p.windowHours.toFixed(1)}h`;
+  return (
+    <div style={{ margin: "2px 0 12px" }}>
+      <div className="err-line">
+        <span className="dot stale" />
+        {t("predict.line", { time: timeUntil(p.exhaustAt, lang) })}
+        <span className="pb-plan"> · {t(("predict.conf." + p.confidence) as any)}</span>
+      </div>
+      <div className="err-line" style={{ opacity: 0.72 }}>
+        {t("predict.range", { low: timeUntil(p.exhaustLow, lang), high: timeUntil(p.exhaustHigh, lang), hours })}
+      </div>
+    </div>
   );
 }
 

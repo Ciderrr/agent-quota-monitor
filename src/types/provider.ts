@@ -154,3 +154,40 @@ export const PROVIDERS: ProviderMeta[] = [
 export function metaOf(id: string): ProviderMeta {
   return PROVIDERS.find((p) => p.id === id)!;
 }
+
+// ===== v0.2 洞察（燃烧预测 + 余额趋势 + 切换建议）—— Rust predict.rs 的 TS 镜像 =====
+
+export type Confidence = "high" | "medium" | "low";
+
+export interface BucketPrediction {
+  providerId: string;
+  bucketId: string;
+  label: string;
+  ratePctPerHour: number;
+  exhaustAt: string;
+  exhaustLow: string;
+  exhaustHigh: string;
+  confidence: Confidence;
+  windowHours: number;
+}
+
+export interface BalancePrediction {
+  providerId: string;
+  dailyBurn: number;
+  currency: string;
+  daysLeft: number;
+  confidence: Confidence;
+}
+
+export interface Alternative {
+  providerId: string;
+  name: string;
+  remainingPct?: number;
+  resetAt?: string;
+}
+
+export interface Insights {
+  predictions: Record<string, BucketPrediction[]>;
+  balance: Record<string, BalancePrediction>;
+  alternatives: Record<string, Alternative[]>;
+}

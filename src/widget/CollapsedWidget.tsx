@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import type { ProviderSnapshot } from "../types/provider";
+import type { ProviderSnapshot, Insights } from "../types/provider";
 import { metaOf } from "../types/provider";
 import { useI18n } from "../i18n";
-import { primaryValue, primarySub, levelOf } from "../ui/format";
+import { primaryValue, primarySub, levelOf, pickPrimaryBucket, bucketLabel, timeUntil } from "../ui/format";
 import { GlassSurface } from "../ui/GlassSurface";
 import { IconSettings } from "../ui/icons";
 
 export function CollapsedWidget({
-  snapshots, onOpen, onOpenSettings, onExpand,
+  snapshots, insights, onOpen, onOpenSettings, onExpand,
 }: {
   snapshots: ProviderSnapshot[];
+  /** v0.2 洞察（真实壳）；浏览器原型为 null → 不显示预测提示 */
+  insights: Insights | null;
   /** 点击行 → 直接进入该 Provider 详情（精简层点谁看谁） */
   onOpen: (providerId: string) => void;
   /** gear 不带参 → 通用页；空态「前往设置连接」带 "providers" → 直达 Provider 列表 */
@@ -90,7 +92,18 @@ export function CollapsedWidget({
         {snapshots.map((s) => {
           const meta = metaOf(s.providerId);
           const { text, percent, isMoney } = primaryValue(s);
-          const sub = primarySub(s, t, lang);
+          let sub = primarySub(s, t, lang);
+          // v0.2：代表桶存在燃烧预测且 2 小时内耗尽 → 副标题改提示「预计 X 后耗尽」
+          const primary = pickPrimaryBucket(s.quotaBuckets);
+          const pred = primary
+            ? insights?.predictions?.[s.providerId]?.find((p) => p.bucketId === primary.id)
+            : undefined;
+          if (pred) {
+            const minsLeft = (new Date(pred.exhaustAt).getTime() - Date.now()) / 60000;
+            if (minsLeft > 0 && minsLeft <= 120 && primary) {
+              sub = `${bucketLabel(primary, t)} · ${t("collapsed.exhaust_hint", { time: timeUntil(pred.exhaustAt, lang) })}`;
+            }
+          }
           const level = levelOf(percent);
           const hasErr = s.connectionState !== "connected" && s.connectionState !== "degraded";
           const showErrText = hasErr || s.errorState?.code === "not_configured";

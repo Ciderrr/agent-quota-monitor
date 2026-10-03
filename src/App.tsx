@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { engine, type Scenario } from "./mock/engine";
 import { makeT, I18nContext, type Lang } from "./i18n";
 import { isTauri } from "./bridge";
-import type { ProviderSnapshot } from "./types/provider";
+import type { ProviderSnapshot, Insights } from "./types/provider";
 import { CollapsedWidget } from "./widget/CollapsedWidget";
 import { ExpandedWidget } from "./widget/ExpandedWidget";
 import { ConnectFlow } from "./connect/ConnectFlow";
@@ -235,12 +235,20 @@ function MainShell() {
   useEngineTick();
   const i18nCtx = useMemo(() => makeT(lang), [lang]);
   const [tauriSnaps, setTauriSnaps] = useState<ProviderSnapshot[]>([]);
+  const [insights, setInsights] = useState<Insights | null>(null);
   useEffect(() => {
     if (!isTauri) return;
     let un: (() => void) | undefined;
+    let unIns: (() => void) | undefined;
     const pull = async () => { try { setTauriSnaps(await invoke<ProviderSnapshot[]>("get_snapshots")); } catch { /* 尚未就绪 */ } };
-    (async () => { await pull(); un = await listen("snapshot-updated", pull); })();
-    return () => un?.();
+    (async () => {
+      await pull();
+      un = await listen("snapshot-updated", pull);
+      // v0.2 洞察：初始值 + 事件流（Rust 每 tick 重算，变化才广播）
+      invoke<Insights>("get_insights").then(setInsights).catch(() => {});
+      unIns = await listen<Insights>("insights-updated", (e) => setInsights(e.payload));
+    })();
+    return () => { un?.(); unIns?.(); };
   }, []);
   const snapshots = isTauri ? tauriSnaps : engine.getSnapshots();
   const lastUpdated = snapshots.reduce(
@@ -470,6 +478,7 @@ function MainShell() {
             {view === "collapsed" ? (
               <CollapsedWidget
                 snapshots={visibleSnaps}
+                insights={isTauri ? insights : null}
                 onOpen={openProvider}
                 onOpenSettings={openSettings}
                 onExpand={openOverview}
@@ -477,6 +486,7 @@ function MainShell() {
             ) : (
               <ExpandedWidget
                 snapshots={visibleSnaps}
+                insights={isTauri ? insights : null}
                 view={view === "detail" ? "detail" : view === "history" ? "history" : "overview"}
                 detailId={detailId}
                 onBack={homeView}
