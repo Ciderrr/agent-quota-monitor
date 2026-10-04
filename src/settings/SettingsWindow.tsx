@@ -99,6 +99,11 @@ export function SettingsWindow({
     }).catch(() => {});
     invoke<Record<string, boolean>>("get_credential_status").then(setCreds).catch(() => {});
     invoke<{ loggedIn: boolean }>("codex_login_status").then((r) => setCodexSess(r?.loggedIn ?? null)).catch(() => {});
+    // 启停状态每次一并刷新（v0.3.1：此前只在挂载时拉一次且失败即空表，
+    // 空表 + 「?? true」兜底让 9 家全部显示为开启——用户实测 9/4 的根因）
+    invoke<Record<string, boolean>>("list_providers_enabled").then((m) => {
+      if (m && Object.keys(m).length > 0) setEnabledMap(m);
+    }).catch(() => {});
     // 切换选项卡后清掉临时「测试成功」标记
     setTestState({});
   };
@@ -342,16 +347,19 @@ export function SettingsWindow({
                 )}
                 <p className="helper quiet" style={{ margin: "4px 0 0" }}>
                   {t("settings.enabled_count", {
-                    n: String(PROVIDERS.filter((p) => enabledMap[p.id] ?? true).length),
+                    n: String(PROVIDERS.filter((p) => enabledMap[p.id] === true).length),
                   })}
                 </p>
                 {PROVIDERS.map((p) => {
-                  const enabled = enabledMap[p.id] ?? true;
+                  // 启停状态未加载完成前不渲染开关（宁可慢一拍，不可显示假状态）
+                  const enabledKnown = enabledMap[p.id] !== undefined;
+                  const enabled = enabledMap[p.id] ?? false;
                   const snap = isTauri ? snaps[p.id] : engine.getSnapshot(p.id);
                   const conn = snap?.connectionState ?? "not_connected";
                   // Key 型 Provider：凭据已不存在时，旧快照的「已连接」不可信 → 如实显示未配置
                   const keyBased = p.id === "deepseek" || p.id === "zcode";
                   const credMissing = keyBased && isTauri && creds[p.id] === false;
+                  const isLocalLogs = p.connectionMethods.includes("local_logs");
                   const live = !credMissing && (conn === "connected" || conn === "degraded");
                   const testing = testState[p.id];
                   return (
@@ -360,7 +368,7 @@ export function SettingsWindow({
                         <span className="label">{t(p.nameKey as any)}</span>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           {/* 日志型 Provider 无连接流程（自动探测本机数据），仅 API Key/登录型显示 Connect */}
-                          {!live && p.connectionMethods.some((m) => m === "api_key" || m === "browser_login") && (
+                          {!live && p.connectionMethods.some((m) => m !== "local_logs") && (
                             <button className="mini-btn" onClick={() => { window.dispatchEvent(new CustomEvent("proto-connect", { detail: p.id })); }}>{t("action.connect")}</button>
                           )}
                           {live && (
@@ -377,7 +385,9 @@ export function SettingsWindow({
                           {/* 连接状态只说一次：未配置/未连接/已连接/…，不叠错误短词 */}
                           {credMissing
                             ? t("settings.cred_missing")
-                            : conn === "not_connected" && (snap?.errorState?.code === "not_configured" || !snap?.errorState)
+                            : isLocalLogs && (conn === "not_connected" || conn === "auth_required")
+                              ? t("settings.local_logs_missing")
+                              : conn === "not_connected" && (snap?.errorState?.code === "not_configured" || !snap?.errorState)
                               ? t("settings.cred_unset")
                               : `${t("settings.provider_state")}：${t(("state." + conn) as any)}${(() => { const e = snap?.errorState?.code; if (!e || e === "not_configured") return ""; const err = t(("error." + e) as any); const st = t(("state." + conn) as any); return err === st ? "" : ` · ${err}`; })()}`}
                           {!enabled ? t("settings.hidden_suffix") : ""}
@@ -464,6 +474,7 @@ export function SettingsWindow({
                     </button>
                   </div>
                   <p className="helper quiet">{t("settings.clear_session_note")}</p>
+                  <p className="helper quiet" style={{ marginTop: 4 }}>{t("settings.privacy_logs_note")}</p>
                   <div className="cred-row">
                     <span className="cred-id">codex / chatgpt session（Managed Runtime）</span>
                     <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
