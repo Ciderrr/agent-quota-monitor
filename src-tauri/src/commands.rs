@@ -195,8 +195,32 @@ pub fn set_provider_enabled(
             .copied()
             .collect();
         store.kv_set("providers/enabled", &serde_json::to_string(&list).unwrap_or_default());
+        // 启用瞬间立即抓取（v0.3.1）：否则要等下一个 30s tick 才有快照，
+        // 主界面最长 40s 不出现新行——用户会以为卡死而反复点击
+        if enabled {
+            r.next_due_ms.insert(id.clone(), 0);
+        }
     }
     let _ = app.emit("providers-changed", json!({ "id": id, "enabled": enabled }));
+    if enabled {
+        let a2 = app.clone();
+        let rt2 = rt.inner().clone();
+        let s2 = store.inner().clone();
+        let id2 = id.clone();
+        tauri::async_runtime::spawn(async move {
+            let snap = crate::scheduler::fetch_provider(&id2, &rt2, &s2).await;
+            let now = chrono::Utc::now().timestamp_millis();
+            {
+                let mut r = rt2.lock().unwrap();
+                r.snapshots.insert(id2.clone(), snap.clone());
+                r.last_fetch_ms.insert(id2.clone(), now);
+                // 抓完即排定常规节奏，避免下一 tick 立刻重复抓
+                r.next_due_ms.insert(id2.clone(), now + 300_000);
+            }
+            s2.insert_snapshot(&id2, &serde_json::to_string(&snap).unwrap_or_default());
+            let _ = a2.emit("snapshot-updated", json!({ "providerId": id2 }));
+        });
+    }
     Ok(())
 }
 

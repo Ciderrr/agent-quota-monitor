@@ -446,6 +446,9 @@ function MainShell() {
         if (enabled) n.delete(id); else n.add(id);
         return n;
       });
+      // 启用瞬间主窗口也重拉一次快照（v0.3.1）：boot 恢复的快照能立即上屏，
+      // 不必等首次抓取完成
+      invoke<ProviderSnapshot[]>("get_snapshots").then(setTauriSnaps).catch(() => {});
     }).then((f) => { un2 = f; }).catch(() => {});
     invoke<Record<string, boolean>>("list_providers_enabled").then((m) => {
       const hid = new Set<string>();
