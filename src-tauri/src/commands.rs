@@ -1054,6 +1054,61 @@ pub(crate) fn store_workbuddy_payload(
     snap
 }
 
+/// 检查更新（v0.2.2）：返回 None = 已是最新；Some = 可用版本信息。
+/// 签名验证由 tauri-plugin-updater 强制执行（minisign，公钥在 tauri.conf.json）。
+#[tauri::command]
+pub async fn check_update(app: AppHandle) -> Result<Option<serde_json::Value>, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    match updater.check().await {
+        Ok(Some(u)) => Ok(Some(json!({
+            "version": u.version.to_string(),
+            "currentVersion": u.current_version.to_string(),
+            "notes": u.body.clone().unwrap_or_default(),
+            "date": u.date.map(|d| d.to_string()).unwrap_or_default(),
+        }))),
+        Ok(None) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// 下载并安装更新：进度经 update-progress 事件广播（0–100 可估时给出）；
+/// Windows 上安装阶段应用会被退出（NSIS 限制），由用户重新打开。
+#[tauri::command]
+pub async fn install_update(app: AppHandle) -> Result<(), String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    let update = updater
+        .check()
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or("no update available")?;
+    let total = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let downloaded = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let a1 = app.clone();
+    let a2 = app.clone();
+    update
+        .download_and_install(
+            move |chunk, content_len| {
+                use std::sync::atomic::Ordering;
+                downloaded.fetch_add(chunk as u64, Ordering::Relaxed);
+                if let Some(t) = content_len {
+                    total.store(t, Ordering::Relaxed);
+                }
+                let got = downloaded.load(Ordering::Relaxed);
+                let tot = total.load(Ordering::Relaxed);
+                let pct = if tot > 0 { (got * 100 / tot).min(100) } else { 0 };
+                let _ = a1.emit("update-progress", json!({ "percent": pct }));
+            },
+            move || {
+                let _ = a2.emit("update-progress", json!({ "percent": 100, "installing": true }));
+            },
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// 托盘菜单：退出应用。
 /// 优雅退出（v0.2.1）：先逐个销毁窗口（向 shell 发出正常的窗口销毁通知），再退出进程。
 /// 直接 ExitProcess 的强拆会让 Windows 11 的 Alt+Tab 切换器缓存残留「幽灵条目」

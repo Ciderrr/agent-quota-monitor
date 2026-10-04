@@ -41,7 +41,48 @@ export function SettingsWindow({
   const [creds, setCreds] = useState<Record<string, boolean>>({});
   const [codexSess, setCodexSess] = useState<boolean | null>(null);
   const [appVersion, setAppVersion] = useState("");
+  // 更新状态机（v0.2.2）：idle → checking → latest | available → downloading | failed
+  const [updateState, setUpdateState] = useState<"idle" | "checking" | "latest" | "available" | "downloading" | "failed">("idle");
+  const [updateInfo, setUpdateInfo] = useState<{ version?: string } | null>(null);
+  const [updatePercent, setUpdatePercent] = useState(0);
   const busyRef = useRef(false);
+
+  const runCheckUpdate = async () => {
+    if (!isTauri || updateState === "checking") return;
+    setUpdateState("checking");
+    try {
+      const info = await invoke<{ version?: string } | null>("check_update");
+      if (info) {
+        setUpdateInfo(info);
+        setUpdateState("available");
+      } else {
+        setUpdateState("latest");
+      }
+    } catch {
+      setUpdateState("failed");
+    }
+  };
+  const runInstallUpdate = async () => {
+    if (!isTauri) return;
+    setUpdateState("downloading");
+    setUpdatePercent(0);
+    try {
+      await invoke("install_update");
+      // Windows 安装阶段应用会被退出；若走到这里说明安装流程已启动
+    } catch {
+      setUpdateState("failed");
+    }
+  };
+
+  // 下载进度（update-progress 事件）
+  useEffect(() => {
+    if (!isTauri) return;
+    let un: (() => void) | undefined;
+    listen<{ percent?: number }>("update-progress", (e) => {
+      if (typeof e.payload?.percent === "number") setUpdatePercent(e.payload.percent);
+    }).then((f) => { un = f; }).catch(() => {});
+    return () => un?.();
+  }, []);
 
   useEffect(() => {
     // About 页版本号：从 Tauri 运行时读取（与安装包版本永远一致，不再手写）
@@ -444,6 +485,49 @@ export function SettingsWindow({
                       }}
                     >github.com/Ciderrr/agent-quota-monitor</a>
                   </b>
+                </div>
+                {/* 更新（v0.2.2）：手动检查 + 下载安装 + 进度；签名强制校验 */}
+                <div className="kv" style={{ alignItems: "flex-start" }}>
+                  <span>{t("settings.about_update")}</span>
+                  <span style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
+                    {isTauri && (
+                      <>
+                        {updateState === "idle" && (
+                          <button className="mini-btn" onClick={runCheckUpdate}>{t("update.check")}</button>
+                        )}
+                        {updateState === "checking" && (
+                          <span className="cred-state">
+                            <span className="spinner" style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }} />
+                            {t("update.checking")}
+                          </span>
+                        )}
+                        {updateState === "latest" && (
+                          <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <span className="cred-state">✓ {t("update.latest")}</span>
+                            <button className="mini-btn" onClick={runCheckUpdate}>{t("update.recheck")}</button>
+                          </span>
+                        )}
+                        {updateState === "available" && updateInfo && (
+                          <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <span className="cred-state">{t("update.available", { v: updateInfo.version ?? "" })}</span>
+                            <button className="mini-btn" onClick={runInstallUpdate}>{t("update.install")}</button>
+                          </span>
+                        )}
+                        {updateState === "downloading" && (
+                          <span className="cred-state">
+                            {t("update.downloading", { pct: updatePercent })} — {t("update.restart_note")}
+                          </span>
+                        )}
+                        {updateState === "failed" && (
+                          <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <span className="cred-state" style={{ color: "var(--crit)" }}>{t("update.failed")}</span>
+                            <button className="mini-btn" onClick={runCheckUpdate}>{t("update.retry")}</button>
+                          </span>
+                        )}
+                      </>
+                    )}
+                    {!isTauri && <span className="cred-state">{t("update.tauri_only")}</span>}
+                  </span>
                 </div>
                 <p className="helper quiet">{t("settings.about_license")}</p>
               </>

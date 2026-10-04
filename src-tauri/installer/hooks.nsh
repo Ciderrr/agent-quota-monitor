@@ -21,3 +21,28 @@
   Pop $0
   Sleep 600
 !macroend
+
+!macro NSIS_HOOK_POSTUNINSTALL
+  ; 「删除应用数据」勾选后的实际清理（v0.2.2）。
+  ; 根因（用户实测：勾了选框数据仍在）：Tauri 模板只删 $APPDATA\$BUNDLEID 与
+  ; $LOCALAPPDATA\$BUNDLEID，本应用的便携设计从未使用这两个目录。真实数据在：
+  ;   安装目录 data/（SQLite DB）· $LOCALAPPDATA\AgentQuotaMonitor（Codex 隔离 HOME /
+  ;   WebView2 会话 / 运行时下载 / 日志 / 单实例锁）· $APPDATA\AgentQuotaMonitor（旧版遗留 DB）
+  ;   · Windows 凭据管理器条目 —— 全部在此补删。
+  ${If} $DeleteAppDataCheckboxState = 1
+  ${AndIf} $UpdateMode <> 1
+    SetShellVarContext current
+    ; 1) 安装目录内的便携数据（DB + wal/shm），随后移除安装目录残留
+    RmDir /r "$INSTDIR\data"
+    RMDir "$INSTDIR"
+    ; 2) 运行时数据（codex-home / mimo-session / runtimes / logs / instance.lock）
+    RmDir /r "$LOCALAPPDATA\AgentQuotaMonitor"
+    ; 3) 旧版遗留数据库目录
+    RmDir /r "$APPDATA\AgentQuotaMonitor"
+    ; 4) 凭据管理器条目（keyring target = <slot>.AgentQuotaMonitor）
+    nsExec::Exec 'cmdkey /delete:deepseek/api-key.AgentQuotaMonitor'
+    Pop $0
+    nsExec::Exec 'cmdkey /delete:zcode/coding-plan-key.AgentQuotaMonitor'
+    Pop $0
+  ${EndIf}
+!macroend

@@ -56,6 +56,8 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_notification::init())
+        // 自动更新（v0.2.2）：签名强制校验；端点为 GitHub Releases 的 latest.json
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
@@ -366,6 +368,47 @@ pub fn run() {
                 });
             }
 
+            // 启动后自动检查更新（v0.2.2）：延迟 8s 避开启动峰值，静默失败；
+            // 发现新版本 → 系统通知（尊重通知开关；同一版本只提醒一次）。
+            // 隐私说明：仅 GET GitHub 上的静态版本清单（latest.json），无任何数据上传。
+            {
+                let a = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    use tauri_plugin_notification::NotificationExt;
+                    use tauri_plugin_updater::UpdaterExt;
+                    tokio::time::sleep(std::time::Duration::from_secs(8)).await;
+                    let Ok(updater) = a.updater() else { return };
+                    let Ok(Some(u)) = updater.check().await else { return };
+                    let notify_on = a
+                        .state::<SharedRuntime>()
+                        .inner()
+                        .lock()
+                        .map(|r| r.notify_enabled)
+                        .unwrap_or(true);
+                    if !notify_on {
+                        return;
+                    }
+                    let store = a.state::<store::Store>();
+                    let ver = u.version.to_string();
+                    if store.kv_get("update/notified_version").as_deref() == Some(ver.as_str()) {
+                        return;
+                    }
+                    let shown = a
+                        .notification()
+                        .builder()
+                        .title("Agent Quota Monitor 有新版本")
+                        .body(format!(
+                            "v{} 可用（当前 v{}）。打开 设置 → 关于 下载安装。",
+                            u.version, u.current_version
+                        ))
+                        .show()
+                        .is_ok();
+                    if shown {
+                        store.kv_set("update/notified_version", &ver);
+                    }
+                });
+            }
+
             // 调度循环：30s 节拍（事件驱动 tick，非忙等）。
             // 单次 tick 放独立任务执行：即使 panic 也只丢一轮，绝不杀死调度循环。
             let rt = app.state::<SharedRuntime>().inner().clone();
@@ -425,6 +468,8 @@ pub fn run() {
             commands::get_credential_status,
             commands::list_providers_enabled,
             commands::clear_provider_session,
+            commands::check_update,
+            commands::install_update,
             commands::quit_app,
         ])
         .run(tauri::generate_context!())
