@@ -1054,9 +1054,17 @@ pub(crate) fn store_workbuddy_payload(
     snap
 }
 
-/// 托盘菜单：退出应用
+/// 托盘菜单：退出应用。
+/// 优雅退出（v0.2.1）：先逐个销毁窗口（向 shell 发出正常的窗口销毁通知），再退出进程。
+/// 直接 ExitProcess 的强拆会让 Windows 11 的 Alt+Tab 切换器缓存残留「幽灵条目」
+/// （用户实测：退出后条目仍在、空白缩略图、无法激活）。
 #[tauri::command]
 pub fn quit_app(app: AppHandle) {
+    for label in ["settings", "tray-menu", "mimo-login", "wb-login", "widget"] {
+        if let Some(w) = app.get_webview_window(label) {
+            let _ = w.destroy();
+        }
+    }
     app.exit(0);
 }
 

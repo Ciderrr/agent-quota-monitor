@@ -11,8 +11,12 @@
 !macroend
 
 !macro NSIS_HOOK_PREINSTALL
-  ; 结束正在运行的旧实例，避免「Error opening file for writing」（用户实测踩过）
+  ; 结束正在运行的旧实例，避免「Error opening file for writing」（用户实测踩过）。
+  ; 先优雅关闭（WM_CLOSE → 应用自销毁窗口，避免 Alt+Tab 幽灵条目），2 秒后仍在再强杀。
   DetailPrint "Closing Agent Quota Monitor if running..."
+  nsExec::Exec 'taskkill /IM agent-quota-monitor.exe'
+  Pop $0
+  Sleep 2000
   nsExec::Exec 'taskkill /F /IM agent-quota-monitor.exe'
   Pop $0
   Sleep 600
