@@ -39,13 +39,21 @@
 ## Provider Discovery
 
 - [codex.md](provider-discovery/codex.md) — app-server 主通道（已实测）
-- [zcode.md](provider-discovery/zcode.md) — 官方接口（凭证需用户粘贴）
+- [zcode.md](provider-discovery/zcode.md) — 官方接口（凭证需用户粘贴）；v0.3 字段语义经 BurnRate 实证升级
 - [mimo-token-plan.md](provider-discovery/mimo-token-plan.md) + [mimo-token-plan-round2.md](provider-discovery/mimo-token-plan-round2.md) — 数据源已定位（usage/detail），登录态 fixture 待 harness
-- [mimo-desktop.md](provider-discovery/mimo-desktop.md) — **ARCHIVED：OUT OF V1 SCOPE**
+- [mimo-desktop.md](provider-discovery/mimo-desktop.md) — **ARCHIVED：OUT OF V1 SCOPE**（v0.3 复查结论维持）
 - [deepseek.md](provider-discovery/deepseek.md) — 官方余额 API（仅余额 + 余额历史）
-- [claude.md](provider-discovery/claude.md) — Pro/Max 用量：会话路线（无官方 API；本地 JSONL/代理路线违反红线）
+- [claude.md](provider-discovery/claude.md) — v0.3 已实现**日志型受限变体**（含待裁定的红线问题与 OAuth 路线评估）
 - [workbuddy.md](provider-discovery/workbuddy.md) — 腾讯 WorkBuddy Credits：端点待 harness（社区插件已证明余额可读）
-- [opencode-go.md](provider-discovery/opencode-go.md) — Go 订阅 5h/周/月 美元额度：控制台会话路线
+- [opencode-go.md](provider-discovery/opencode-go.md) — Go 订阅 5h/周/月 美元额度：控制台会话路线（搁置）
+- [opencode-cli.md](provider-discovery/opencode-cli.md) — v0.3 已实现（opencode.db 列级只读聚合）
+- [kimi.md](provider-discovery/kimi.md) — v0.3 已实现（双路由：API Key 余额 / Coding Plan 会话用量）
+- [minimax.md](provider-discovery/minimax.md) — v0.3 已实现（API Key 套餐余量）
+- [grok.md](provider-discovery/grok.md) — 暂不可实现（无公开用量 API）
+- [doubao-volc.md](provider-discovery/doubao-volc.md) — P2（Agent Plan 有 API，需火山 V4 签名）
+- [qwen-dashscope.md](provider-discovery/qwen-dashscope.md) — P2（余额走阿里云 OpenAPI，需 ACS3 签名）
+- [hunyuan-tencent.md](provider-discovery/hunyuan-tencent.md) — P2（Billing API，需 TC3 签名，ModelCost_Monitor 可抄）
+- [gemini-cli.md](provider-discovery/gemini-cli.md) — P2（日志型可做，红线问题与 Claude 同类）
 
 ## UI Prototype（Gate C）
 

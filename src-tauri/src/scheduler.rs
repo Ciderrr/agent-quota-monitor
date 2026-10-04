@@ -9,7 +9,14 @@ use std::sync::Mutex;
 use tauri::{Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 
-pub const PROVIDER_IDS: [&str; 5] = ["codex", "zcode", "mimo", "deepseek", "workbuddy"];
+pub const PROVIDER_IDS: [&str; 9] = [
+    "codex", "zcode", "mimo", "deepseek", "workbuddy", "claude", "opencode", "kimi", "minimax",
+];
+/// 默认启用集（v0.3 起）：最多同时显示 4 家（用户红线）。新装用户默认这 4 家；
+/// 后续启停经设置页持久化到 kv。新扩容 Provider（claude/opencode/kimi/minimax）默认关闭。
+pub const DEFAULT_ENABLED: [&str; 4] = ["codex", "mimo", "deepseek", "workbuddy"];
+/// 主界面 Provider 显示上限（用户红线，Rust 侧强制 + 前端提示双保险）
+pub const MAX_VISIBLE: usize = 4;
 
 pub struct Runtime {
     pub snapshots: HashMap<String, Snapshot>,
@@ -68,6 +75,10 @@ pub fn not_connected_snapshot(id: &str) -> Snapshot {
         "zcode" => (zcode::USAGE_URL_ZAI, "public_api"),
         "mimo" => ("https://platform.xiaomimimo.com/#/console/plan-manage", "undocumented_first_party"),
         "workbuddy" => ("https://www.workbuddy.cn/profile/plans-usage", "undocumented_first_party"),
+        "claude" => (crate::claude::USAGE_URL, "local_logs"),
+        "opencode" => (crate::opencode::USAGE_URL, "local_logs"),
+        "kimi" => (crate::kimi::USAGE_URL, "public_api"),
+        "minimax" => (crate::minimax::USAGE_URL, "public_api"),
         _ => ("https://platform.deepseek.com/usage", "public_api"),
     };
     Snapshot::not_configured(id, url, stab)
@@ -281,6 +292,23 @@ pub async fn fetch_provider(id: &str, rt: &SharedRuntime, store: &crate::store::
         }
         crate::workbuddy::ID => {
             crate::scheduler::session_cached_snapshot(crate::workbuddy::ID, rt, store, crate::workbuddy::login_required())
+        }
+        // v0.3 扩容：日志型（本机数据，无网络）+ API Key 型
+        crate::claude::ID => crate::claude::fetch(),
+        crate::opencode::ID => crate::opencode::fetch(),
+        crate::kimi::ID => {
+            let key = crate::credentials::get_credential("kimi/api-key");
+            match key {
+                Ok(Some(k)) => crate::kimi::fetch(&k).await,
+                _ => not_connected_snapshot(crate::kimi::ID),
+            }
+        }
+        crate::minimax::ID => {
+            let key = crate::credentials::get_credential("minimax/api-key");
+            match key {
+                Ok(Some(k)) => crate::minimax::fetch(&k).await,
+                _ => not_connected_snapshot(crate::minimax::ID),
+            }
         }
         other => not_connected_snapshot(other),
     }

@@ -94,6 +94,11 @@ export function primaryValue(s: { quotaBuckets: QuotaBucket[]; balances: Balance
   if (primary?.remainingPercent !== undefined) {
     return { text: `${Math.round(primary.remainingPercent)}%`, percent: primary.remainingPercent };
   }
+  // 消耗型桶（Claude/opencode 日志型）：无剩余百分比，展示已用量（0 也是真实值）
+  const usedBucket = s.quotaBuckets.find((b) => b.used !== undefined && b.remainingPercent === undefined);
+  if (usedBucket?.used !== undefined) {
+    return { text: compact(usedBucket.used) };
+  }
   const bal = s.balances[0];
   if (bal && bal.total !== undefined) {
     const sym = bal.currency === "CNY" ? "¥" : bal.currency === "USD" ? "$" : "";

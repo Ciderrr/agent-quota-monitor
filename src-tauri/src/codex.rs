@@ -210,7 +210,7 @@ async fn call_once(bin: &PathBuf, method: &str, params: Value) -> Result<Value, 
     let init = json!({
         "jsonrpc": "2.0", "id": id,
         "method": "initialize",
-        "params": { "clientInfo": { "name": "agent-quota-monitor", "title": "Agent Quota Monitor", "version": "0.2.2" }, "capabilities": { "experimentalApi": false } }
+        "params": { "clientInfo": { "name": "agent-quota-monitor", "title": "Agent Quota Monitor", "version": "0.3.0" }, "capabilities": { "experimentalApi": false } }
     });
     stdin
         .write_all(format!("{init}\n").as_bytes())
@@ -499,7 +499,7 @@ pub async fn login_chatgpt() -> Result<String, (String, Option<String>)> {
     let init = json!({
         "jsonrpc": "2.0", "id": id,
         "method": "initialize",
-        "params": { "clientInfo": { "name": "agent-quota-monitor", "title": "Agent Quota Monitor", "version": "0.2.2" }, "capabilities": { "experimentalApi": false } }
+        "params": { "clientInfo": { "name": "agent-quota-monitor", "title": "Agent Quota Monitor", "version": "0.3.0" }, "capabilities": { "experimentalApi": false } }
     });
     let id2 = id + 1;
     let login = json!({

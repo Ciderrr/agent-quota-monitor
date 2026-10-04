@@ -43,7 +43,7 @@ export function ConnectFlow({ providerId, onClose }: { providerId: string; onClo
             </div>
           </div>
           {providerId === "codex" && <CodexFlow onClose={onClose} />}
-          {(providerId === "zcode" || providerId === "deepseek") && <KeyFlow providerId={providerId} onClose={onClose} />}
+          {(providerId === "zcode" || providerId === "deepseek" || providerId === "kimi" || providerId === "minimax") && <KeyFlow providerId={providerId} onClose={onClose} />}
           {providerId === "mimo" && <MimoFlow onClose={onClose} />}
           {providerId === "workbuddy" && <WorkbuddyFlow onClose={onClose} />}
         </div>
@@ -201,7 +201,11 @@ function KeyFlow({ providerId, onClose }: { providerId: string; onClose: () => v
   };
   const closing = useAutoClose(onClose, stage === "saved");
 
-  const helper = providerId === "zcode" ? t("connect.zcode.helper") : t("connect.deepseek.helper");
+  const helper =
+    providerId === "zcode" ? t("connect.zcode.helper")
+    : providerId === "kimi" ? t("connect.kimi.helper")
+    : providerId === "minimax" ? t("connect.minimax.helper")
+    : t("connect.deepseek.helper");
 
   return (
     <>

@@ -113,3 +113,7 @@
 官方：mimo.mi.com（docs/news/updates）、mimo.xiaomimimo.com（pricing 页、desktop/invite/runtime-config.js）、github.com/XiaomiMiMo/MiMo-Code（同族产品本地端点先例），2026-09-28 访问。
 本机：`%APPDATA%\Xiaomi MiMo`（Electron 数据目录，仅列目录名）、`%LOCALAPPDATA%\xiaomi-mimo-desktop-updater`。
 社区（均 UNVERIFIED）：IT之家（beta 时间）、新浪科技转载微博（价格区间）、topic.fit（本地代理传闻）。
+
+## v0.3 复查（2026-10-04）
+
+多轮检索（同期调研 Grok/豆包/Qwen/混元等）仍未发现 MiMo Desktop 会员额度的可用数据源——**结论维持：可监控性低，标记"暂不支持"**。本机已安装该应用，保留运行时取证入口。

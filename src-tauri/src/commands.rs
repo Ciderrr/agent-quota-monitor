@@ -40,6 +40,34 @@ fn metas() -> Vec<ProviderMetaDto> {
             official_usage_url: "https://www.workbuddy.cn/profile/plans-usage".into(),
         },
         ProviderMetaDto {
+            id: "claude".into(), name_key: "provider.claude.name".into(), short_name: "Claude".into(),
+            connection_methods: vec!["local_logs".into()],
+            local_enhancements: vec![],
+            endpoint_stability: "local_logs".into(),
+            official_usage_url: "https://claude.ai/settings/usage".into(),
+        },
+        ProviderMetaDto {
+            id: "opencode".into(), name_key: "provider.opencode.name".into(), short_name: "opencode".into(),
+            connection_methods: vec!["local_logs".into()],
+            local_enhancements: vec![],
+            endpoint_stability: "local_logs".into(),
+            official_usage_url: "https://opencode.ai/docs".into(),
+        },
+        ProviderMetaDto {
+            id: "kimi".into(), name_key: "provider.kimi.name".into(), short_name: "Kimi".into(),
+            connection_methods: vec!["api_key".into()],
+            local_enhancements: vec![],
+            endpoint_stability: "public_api".into(),
+            official_usage_url: "https://www.kimi.com/code/console".into(),
+        },
+        ProviderMetaDto {
+            id: "minimax".into(), name_key: "provider.minimax.name".into(), short_name: "MiniMax".into(),
+            connection_methods: vec!["api_key".into()],
+            local_enhancements: vec![],
+            endpoint_stability: "public_api".into(),
+            official_usage_url: "https://platform.minimaxi.com".into(),
+        },
+        ProviderMetaDto {
             id: "deepseek".into(), name_key: "provider.deepseek.name".into(), short_name: "DeepSeek".into(),
             connection_methods: vec!["api_key".into()],
             local_enhancements: vec![],
@@ -138,9 +166,36 @@ pub async fn refresh_now(
 }
 
 #[tauri::command]
-pub fn set_provider_enabled(app: AppHandle, rt: State<SharedRuntime>, id: String, enabled: bool) -> Result<(), String> {
+pub fn set_provider_enabled(
+    app: AppHandle,
+    rt: State<SharedRuntime>,
+    store: State<Store>,
+    id: String,
+    enabled: bool,
+) -> Result<(), String> {
     if !PROVIDER_IDS.contains(&id.as_str()) { return Err("unknown provider".into()); }
-    rt.lock().unwrap().enabled.insert(id.clone(), enabled);
+    // 用户红线：主界面最多同时显示 4 家（v0.3 起扩容后必须强制，Rust 侧兜底）
+    if enabled {
+        let count = {
+            let r = rt.lock().unwrap();
+            PROVIDER_IDS.iter().filter(|p| r.enabled.get(**p).copied().unwrap_or(false)).count()
+        };
+        let already = { rt.lock().unwrap().enabled.get(&id).copied().unwrap_or(false) };
+        if !already && count >= crate::scheduler::MAX_VISIBLE {
+            return Err(format!("cap:{count}"));
+        }
+    }
+    {
+        let mut r = rt.lock().unwrap();
+        r.enabled.insert(id.clone(), enabled);
+        // 持久化（v0.3）：重启后保持用户的显隐选择
+        let list: Vec<&str> = PROVIDER_IDS
+            .iter()
+            .filter(|p| r.enabled.get(**p).copied().unwrap_or(false))
+            .copied()
+            .collect();
+        store.kv_set("providers/enabled", &serde_json::to_string(&list).unwrap_or_default());
+    }
     let _ = app.emit("providers-changed", json!({ "id": id, "enabled": enabled }));
     Ok(())
 }
@@ -163,6 +218,13 @@ pub async fn connect_with_credential(
                 store.kv_set("zcode/family", &f);
             }
         }
+        // v0.3 扩容：Kimi（API Key 或 kimi.com 控制台 token，二者形态自动识别）
+        "kimi" => {
+            credentials::set_credential("kimi/api-key", &secret)?;
+        }
+        "minimax" => {
+            credentials::set_credential("minimax/api-key", &secret)?;
+        }
         _ => return Err(format!("provider {id} does not support credential connection in Gate D")),
     }
     let snap = crate::scheduler::fetch_provider(&id, &rt, &store).await;
@@ -184,6 +246,8 @@ pub async fn connect_with_credential(
         match id.as_str() {
             "deepseek" => { let _ = credentials::delete_credential("deepseek/api-key"); }
             "zcode" => { let _ = credentials::delete_credential("zcode/coding-plan-key"); }
+            "kimi" => { let _ = credentials::delete_credential("kimi/api-key"); }
+            "minimax" => { let _ = credentials::delete_credential("minimax/api-key"); }
             _ => {}
         }
         rt.lock().unwrap().snapshots.insert(id.clone(), crate::scheduler::not_connected_snapshot(&id));
@@ -196,6 +260,8 @@ pub fn clear_credential(app: AppHandle, rt: State<SharedRuntime>, store: State<S
     match id.as_str() {
         "deepseek" => credentials::delete_credential("deepseek/api-key")?,
         "zcode" => credentials::delete_credential("zcode/coding-plan-key")?,
+        "kimi" => credentials::delete_credential("kimi/api-key")?,
+        "minimax" => credentials::delete_credential("minimax/api-key")?,
         _ => return Err("unknown provider".into()),
     }
     store.purge_provider_history(&id);
@@ -220,7 +286,9 @@ pub fn list_providers_enabled(rt: State<SharedRuntime>) -> serde_json::Value {
 pub fn get_credential_status() -> serde_json::Value {
     let ds = credentials::get_credential("deepseek/api-key").ok().flatten().is_some();
     let zc = credentials::get_credential("zcode/coding-plan-key").ok().flatten().is_some();
-    serde_json::json!({ "deepseek": ds, "zcode": zc })
+    let km = credentials::get_credential("kimi/api-key").ok().flatten().is_some();
+    let mm = credentials::get_credential("minimax/api-key").ok().flatten().is_some();
+    serde_json::json!({ "deepseek": ds, "zcode": zc, "kimi": km, "minimax": mm })
 }
 
 /// 清除会话型 Provider 的 WebView2 会话（②1：此前 MiMo 是 no-op、WorkBuddy 无入口）。
@@ -1129,7 +1197,7 @@ pub fn open_external(app: AppHandle, url: String) -> Result<(), String> {
     let allowed_suffixes = [
         "chatgpt.com", "platform.deepseek.com", "api.deepseek.com",
         "console.z.ai", "open.bigmodel.cn", "api.z.ai", "platform.xiaomimimo.com",
-        "www.workbuddy.cn", "github.com",
+        "www.workbuddy.cn", "github.com", "www.kimi.com", "platform.minimaxi.com", "claude.ai",
     ];
     let u = url::Url::parse(&url).map_err(|_| "bad url".to_string())?;
     if u.scheme() != "https" {

@@ -34,13 +34,19 @@ Codex（ChatGPT）· MiMo Token Plan · WorkBuddy Credits · DeepSeek · ZCode·
 
 ## 📡 支持的 Provider / Supported Providers
 
+> 主界面最多同时显示 **4 家**（设置 → Providers 里开启/关闭）；下表为全部内置支持。
+
 | Provider | 监控数据 | 接入方式 | 说明 |
 |---|---|---|---|
 | Codex (ChatGPT) | 5 小时限额 + 周限额 | 官方 Managed Runtime | 隔离 `CODEX_HOME`，不触碰用户 `~/.codex` |
 | MiMo Token Plan | 月度额度百分比 | 官方页会话（隔离 WebView2） | undocumented 接口，低频保守刷新 |
 | WorkBuddy Credits | 积分包余额/用量 | 官方页会话（隔离 WebView2） | 同上 |
 | DeepSeek | 余额 + 余额历史 | 官方 Balance API | 仅余额，不做差值推算 |
-| ZCode · GLM Coding Plan | 额度余量 | API Key（凭据管理器） | 适配器就绪，待真实 Key 验证 |
+| Claude Code | 5h 窗口 / 7 天 token 消耗 | **本机日志**（自动探测） | 只读用量字段，不读对话内容；官方上限未公开，不做剩余百分比 |
+| opencode | 今日 / 7 天 token 与费用 | 本地 SQLite（列级只读） | 自动探测 `opencode.db`，无登录 |
+| Kimi | 账户余额 或 Coding Plan 周限额 | API Key / 控制台 token | 双路由自动识别（Moonshot） |
+| MiniMax | Coding Plan 套餐余量（按模型） | API Key | 官方 remains 接口 |
+| ZCode · GLM Coding Plan | 5 小时限额 + 日限额 | API Key（凭据管理器） | 字段语义经 [BurnRate](https://github.com/ziyuan888/BurnRate) 实证 |
 
 ## 🔭 监控能力 / What We Monitor
 

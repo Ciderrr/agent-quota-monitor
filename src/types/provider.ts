@@ -86,12 +86,12 @@ export interface ProviderSnapshot {
   fetchedAt: string;
   stale?: boolean;
   /** EndpointStability ≠ DataQuality（ADR-005）：数据 Official 的同时接口可以是 Undocumented */
-  endpointStability?: "public_api" | "undocumented_first_party" | "reverse_engineered";
+  endpointStability?: "public_api" | "undocumented_first_party" | "reverse_engineered" | "local_logs";
   installation?: InstallationState;
   usageUrl: string; // 官方用量页（Open Usage Page）
 }
 
-export type ConnectionMethod = "browser_login" | "api_key" | "web_account_session";
+export type ConnectionMethod = "browser_login" | "api_key" | "web_account_session" | "local_logs";
 
 export interface ProviderMeta {
   id: string;
@@ -148,6 +148,42 @@ export const PROVIDERS: ProviderMeta[] = [
     localEnhancements: [],
     endpointStability: "public_api",
     officialUsageUrl: "https://platform.deepseek.com/usage",
+  },
+  {
+    id: "claude",
+    nameKey: "provider.claude.name",
+    shortName: "Claude",
+    connectionMethods: ["local_logs"],
+    localEnhancements: [],
+    endpointStability: "local_logs",
+    officialUsageUrl: "https://claude.ai/settings/usage",
+  },
+  {
+    id: "opencode",
+    nameKey: "provider.opencode.name",
+    shortName: "opencode",
+    connectionMethods: ["local_logs"],
+    localEnhancements: [],
+    endpointStability: "local_logs",
+    officialUsageUrl: "https://opencode.ai/docs",
+  },
+  {
+    id: "kimi",
+    nameKey: "provider.kimi.name",
+    shortName: "Kimi",
+    connectionMethods: ["api_key"],
+    localEnhancements: [],
+    endpointStability: "public_api",
+    officialUsageUrl: "https://www.kimi.com/code/console",
+  },
+  {
+    id: "minimax",
+    nameKey: "provider.minimax.name",
+    shortName: "MiniMax",
+    connectionMethods: ["api_key"],
+    localEnhancements: [],
+    endpointStability: "public_api",
+    officialUsageUrl: "https://platform.minimaxi.com",
   },
 ];
 

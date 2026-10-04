@@ -441,8 +441,11 @@ function Bucket({ b }: { b: QuotaBucket }) {
   const { t, lang } = useI18n();
   const lvl = levelOf(b.remainingPercent);
   const isPercent = b.unit.kind === "percent";
+  // 消耗型桶（无剩余概念，如 Claude/opencode 日志）：主数值展示已用量
+  const isBurnOnly = !isPercent && b.remaining === undefined && b.used != null;
   const showNum = isPercent ? `${Math.round(b.remainingPercent ?? 0)}%`
-    : b.remaining !== undefined ? compact(b.remaining) : "—";
+    : b.remaining !== undefined ? compact(b.remaining)
+    : isBurnOnly && b.used != null ? compact(b.used) : "—";
   return (
     <div className="bucket">
       <div className="bucket-head">
@@ -455,7 +458,8 @@ function Bucket({ b }: { b: QuotaBucket }) {
       <div className="bucket-main">
         <span className={`bucket-num num ${lvl !== "normal" ? lvl + "-text" : ""}`}>{showNum}</span>
         {!isPercent && b.unit.kind === "credits" && <small className="pb-plan">Credits</small>}
-        {b.used != null && b.total != null && (
+        {isBurnOnly && <small className="pb-plan">{t("quota.used")}</small>}
+        {b.used !== undefined && b.total !== undefined && (
           <span className="pb-plan num">{compact(b.used)} / {compact(b.total)}</span>
         )}
       </div>

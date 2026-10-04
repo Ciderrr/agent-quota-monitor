@@ -1,7 +1,7 @@
-// ZCode / GLM Coding Plan 适配器（Gate E 提前实现最小面）：
+// ZCode / GLM Coding Plan 适配器：
 // GET {base}/api/monitor/usage/quota/limit，Authorization 为裸 key（无 Bearer 前缀）。
-// limits[] 字段级结构未运行时验证（docs/provider-discovery/zcode.md §8）：
-// 未知 type/unit 一律 PeriodType::Custom(raw)，标签用通用“额度”，不猜测语义。
+// v0.3：字段语义已由 BurnRate（Apache-2.0，同栈开源）运行时验证——limits[] 条目
+// type=TOKENS_LIMIT，number=5 为 5 小时滚动窗、number=1 为日窗；percentage 为已用百分比。
 use crate::http;
 use crate::types::*;
 
@@ -63,13 +63,21 @@ async fn fetch_inner(key: &str, family: &str) -> Result<Snapshot, (String, Optio
     if let Some(limits) = env.data.get("limits").and_then(|v| v.as_array()) {
         for (i, l) in limits.iter().enumerate() {
             let ltype = l.get("type").and_then(|v| v.as_str()).unwrap_or("UNKNOWN").to_string();
-            let unit = l.get("unit").and_then(|v| v.as_i64()).unwrap_or(-1);
-            // Gate A.1 规则：type/unit 语义确认前一律 Custom(raw)，绝不猜测 5h/weekly
+            // v0.3（BurnRate 实证）：TOKENS_LIMIT + number(小时数) 映射窗口语义；
+            // 其余 type 一律 Custom(raw)，绝不猜测。
+            let number = l.get("number").and_then(|v| v.as_i64());
+            let period = if ltype == "TOKENS_LIMIT" && number == Some(5) {
+                PeriodType::Rolling { window_mins: 300 }
+            } else if ltype == "TOKENS_LIMIT" && number == Some(1) {
+                PeriodType::Daily
+            } else {
+                PeriodType::Custom { raw: format!("{ltype}#{}", number.unwrap_or(-1)) }
+            };
             buckets.push(QuotaBucket {
                 id: format!("zcode/limit-{i}"),
                 label_key: "quota.quota".into(),
                 label_raw: None,
-                period_type: PeriodType::Custom { raw: format!("{ltype}#unit{unit}") },
+                period_type: period,
                 unit: Unit::Percent,
                 total: None,
                 used: None,

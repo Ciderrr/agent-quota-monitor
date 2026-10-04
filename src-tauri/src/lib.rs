@@ -1,13 +1,17 @@
 // Agent Quota Monitor —— Tauri 2 壳（Gate D）。
 // Local First：无云后端、无遥测；凭证只进 Windows Credential Manager。
 pub mod activity;
+pub mod claude;
 pub mod commands;
 pub mod codex;
 pub mod credentials;
 pub mod deepseek;
 pub mod http;
 pub mod instance;
+pub mod kimi;
 pub mod mimo;
+pub mod minimax;
+pub mod opencode;
 pub mod predict;
 pub mod scheduler;
 pub mod store;
@@ -257,7 +261,18 @@ pub fn run() {
                 .unwrap_or_else(|| ("collapsed".into(), true, Thresholds::default(), 0i64, 1.0f64, "zh".into(), "dark".into()));
 
             let mut enabled: HashMap<String, bool> = HashMap::new();
-            for p in scheduler::PROVIDER_IDS { enabled.insert(p.to_string(), true); }
+            // v0.3：启停持久化到 kv（此前是易失的，重启即全开）；默认集 = 4 家核心
+            //（用户红线：主界面最多同时显示 4 家）。老用户已显式启停过的以 kv 为准。
+            let persisted: Option<Vec<String>> = store
+                .kv_get("providers/enabled")
+                .and_then(|s| serde_json::from_str(&s).ok());
+            for p in scheduler::PROVIDER_IDS {
+                let on = match &persisted {
+                    Some(list) => list.iter().any(|x| x == p),
+                    None => scheduler::DEFAULT_ENABLED.contains(&p),
+                };
+                enabled.insert(p.to_string(), on);
+            }
             let mut next_due_ms: HashMap<String, i64> = HashMap::new();
             for p in scheduler::PROVIDER_IDS { next_due_ms.insert(p.to_string(), 0); } // 启动即拉取
             let kv_family = store.kv_get("zcode/family");
@@ -295,8 +310,7 @@ pub fn run() {
                 lang,
                 theme,
                 insights: Default::default(),
-                last_fetch_ms: HashMap::new(),
-                last_session_read_ms: HashMap::new(),
+                last_fetch_ms: HashMap::new(),                last_session_read_ms: HashMap::new(),
                 read_in_progress: HashMap::new(),
             })));
 

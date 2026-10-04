@@ -30,3 +30,19 @@ Claude Pro/Max 订阅的用量：**5 小时会话窗口 + 每周限额**（Anthr
 - Claumon — Claude Code 仪表盘：rate-limit 表头实时仪表（本地代理路线）
 - CodexBar — macOS 菜单栏显示 Codex+Claude 用量（读本地状态）
 - 以上项目的**数据源结论一致**：Anthropic 无公开用量 API——这反过来验证我们会话路线是唯一 Clean-PC 解。
+
+---
+
+## v0.3 更新（2026-10-04）：日志路线实现 + 待裁定红线问题
+
+上表曾裁定 JSONL 日志路线"违反红线、不破例"。v0.3 实现了该路线的一个**受限变体**（[src-tauri/src/claude.rs](../../src-tauri/src/claude.rs)）：
+
+- 行级预筛（只处理含 "usage"+"timestamp" 的行）→ 仅提取数值字段（input/output/cache token 合计 + 时间戳）→ **绝不存储/显示任何 prompt 或对话内容**；
+- 输出为**消耗量**（当前 5h 窗口与近 7 天 token 合计，source=derived）——官方上限未公开，不伪造剩余百分比；
+- 默认**关闭**（不在默认启用集），仅当用户在设置中显式启用后才会读取本地文件。
+
+**待用户裁定**：此变体是否接受（即把"不读对话内容"红线的解释修订为"只读用量字段、绝不存储对话内容"）？
+- 接受 → claude 适配器保持可用（本机已有 ~/.claude 数据可验证）；
+- 反对 → 注销该适配器（registry 移除），Claude 改走原定的 claude.ai 会话路线（ADR-005 模式，需 Claude 订阅）。
+
+**OAuth 路线评估（CodexBar 参照，暂缓）**：读 `~/.claude/.credentials.json` 的 oauth.accessToken 查官方 usage 端点可获得**官方剩余百分比**，但存在 refresh-token 轮换冲突先例（[CodexBar #1161](https://github.com/steipete/CodexBar/issues/1161)——第三方刷新会与 Claude Code 的刷新互踩导致登录失效）。若做必须**只读不刷新**，401 时提示用户在 Claude Code 里重新 `/login`。列为后续可选路线。

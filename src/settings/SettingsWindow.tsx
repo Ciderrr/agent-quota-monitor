@@ -41,6 +41,7 @@ export function SettingsWindow({
   const [creds, setCreds] = useState<Record<string, boolean>>({});
   const [codexSess, setCodexSess] = useState<boolean | null>(null);
   const [appVersion, setAppVersion] = useState("");
+  const [capHint, setCapHint] = useState(false);
   // 更新状态机（v0.2.2）：idle → checking → latest | available → downloading | failed
   const [updateState, setUpdateState] = useState<"idle" | "checking" | "latest" | "available" | "downloading" | "failed">("idle");
   const [updateInfo, setUpdateInfo] = useState<{ version?: string } | null>(null);
@@ -105,6 +106,8 @@ export function SettingsWindow({
   useEffect(() => {
     if (!isTauri) return;
     refreshStatus();
+    // 启停状态来自 Rust（v0.3 起持久化）
+    invoke<Record<string, boolean>>("list_providers_enabled").then(setEnabledMap).catch(() => {});
     invoke<{ defaultView?: string; notifyEnabled?: boolean; refreshIntervalMs?: number; glassStrength?: number; thresholds?: { warn?: number; crit?: number; balance?: number } }>("get_settings").then((s) => {
       if (s?.defaultView === "collapsed" || s?.defaultView === "overview") setDefaultView(s.defaultView);
       const ms = s?.refreshIntervalMs ?? 0;
@@ -207,6 +210,17 @@ export function SettingsWindow({
     void notifySettings({ [key]: v });
   };
   const toggleProvider = (id: string, on: boolean) => {
+    // 用户红线：主界面最多同时显示 4 家（v0.3 扩容后强制；Rust 侧同样兜底）
+    if (on) {
+      const already = enabledMap[id] ?? true;
+      const count = PROVIDERS.filter((p) => enabledMap[p.id] ?? true).length;
+      if (!already && count >= 4) {
+        setCapHint(true);
+        setTimeout(() => setCapHint(false), 4000);
+        return;
+      }
+    }
+    setCapHint(false);
     setEnabledMap((m) => ({ ...m, [id]: on }));
     // Rust set_provider_enabled 会 app.emit("providers-changed")
     bridge.setProviderEnabled(id, on).catch(() => {});
@@ -321,6 +335,16 @@ export function SettingsWindow({
                 <p className="helper quiet" style={{ marginTop: 0 }}>
                   {t("settings.providers_helper")}
                 </p>
+                {capHint && (
+                  <p className="helper" style={{ color: "var(--warn)", margin: "4px 0 0" }}>
+                    {t("settings.cap_hint")}
+                  </p>
+                )}
+                <p className="helper quiet" style={{ margin: "4px 0 0" }}>
+                  {t("settings.enabled_count", {
+                    n: String(PROVIDERS.filter((p) => enabledMap[p.id] ?? true).length),
+                  })}
+                </p>
                 {PROVIDERS.map((p) => {
                   const enabled = enabledMap[p.id] ?? true;
                   const snap = isTauri ? snaps[p.id] : engine.getSnapshot(p.id);
@@ -335,7 +359,8 @@ export function SettingsWindow({
                       <div className="set-row">
                         <span className="label">{t(p.nameKey as any)}</span>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          {!live && (
+                          {/* 日志型 Provider 无连接流程（自动探测本机数据），仅 API Key/登录型显示 Connect */}
+                          {!live && p.connectionMethods.some((m) => m === "api_key" || m === "browser_login") && (
                             <button className="mini-btn" onClick={() => { window.dispatchEvent(new CustomEvent("proto-connect", { detail: p.id })); }}>{t("action.connect")}</button>
                           )}
                           {live && (
