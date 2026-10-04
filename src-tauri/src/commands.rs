@@ -415,6 +415,8 @@ pub fn open_settings_window(app: AppHandle, section: Option<String>) -> Result<(
     let _ = w.center();
     let _ = w.show();
     let _ = w.set_focus();
+    // show() 会经 tao 重算窗口样式、冲掉 TOOLWINDOW 标记 → 显示后必须重打（Alt+Tab 卫生）
+    crate::instance::exclude_aux_window(&app, "settings");
     if let Some(sec) = section {
         let _ = app.emit("settings-section", sec);
     }
@@ -445,6 +447,7 @@ pub fn show_tray_menu_at(app: AppHandle, x: f64, y: f64) -> Result<(), String> {
     let _ = w.set_position(PhysicalPosition::new(x.round() as i32, y.round() as i32));
     let _ = w.show();
     let _ = w.set_focus();
+    crate::instance::exclude_aux_window(&app, "tray-menu");
     Ok(())
 }
 
@@ -532,6 +535,7 @@ pub fn mimo_open_login(app: AppHandle) -> Result<(), String> {
     let w = app.get_webview_window("mimo-login").ok_or("no mimo-login window")?;
     let _ = w.show();
     let _ = w.set_focus();
+    crate::instance::exclude_aux_window(&app, "mimo-login");
     // 注入只读 helper（登录页同源 fetch；不注入 IPC）
     let _ = w.eval(
         r#"
@@ -837,6 +841,7 @@ pub fn workbuddy_open_login(app: AppHandle) -> Result<(), String> {
         .ok_or("no wb-login window")?;
     let _ = w.show();
     let _ = w.set_focus();
+    crate::instance::exclude_aux_window(&app, "wb-login");
     // 上一次读取会把窗口导航到 aqm://wb 响应页 → 先导航回积分页，等加载完成再注入 helper
     let _ = w.eval(&format!("location.href = '{}';", WB_PLANS_URL));
     let app2 = app.clone();

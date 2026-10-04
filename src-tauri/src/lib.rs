@@ -6,6 +6,7 @@ pub mod codex;
 pub mod credentials;
 pub mod deepseek;
 pub mod http;
+pub mod instance;
 pub mod mimo;
 pub mod predict;
 pub mod scheduler;
@@ -39,6 +40,13 @@ fn register_toast_identity(app: &tauri::AppHandle) {
 }
 
 pub fn run() {
+    // 单实例闸门（v0.2.1）：独立于 single-instance 插件的第二道防线，
+    // 覆盖插件漏判路径（提权混跑 / 并发启动风暴）；已有实例时聚焦其浮窗后退出。
+    if !instance::acquire() {
+        #[cfg(windows)]
+        instance::focus_existing();
+        std::process::exit(0);
+    }
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             // 二次启动 → 显示已存在的浮窗
@@ -200,11 +208,31 @@ pub fn run() {
                     let _ = window.hide();
                 }
             }
+            // 焦点自愈（Alt+Tab 卫生）：任何一次获得焦点时重打辅助窗的 TOOLWINDOW 标记，
+            // 覆盖 tao 因旗标变化重算样式后标记被冲掉的窗口期
+            if let tauri::WindowEvent::Focused(true) = event {
+                let label = window.label();
+                if matches!(label, "settings" | "tray-menu" | "mimo-login" | "wb-login") {
+                    crate::instance::exclude_aux_window(window.app_handle(), label);
+                }
+            }
         })
         .setup(|app| {
             // Windows 通知身份（AUMID）注册：幂等，失败不影响主流程
             #[cfg(windows)]
             register_toast_identity(app.handle());
+
+            // Alt+Tab 卫生：辅助窗口（设置/托盘/登录窗）永不出现在 Alt+Tab（v0.2.1）。
+            // 配置窗在 setup 时已存在；再延后重放一次兜底创建时序差异（幂等）。
+            #[cfg(windows)]
+            {
+                instance::exclude_aux_windows_from_alt_tab(app.handle());
+                let ah = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_millis(2500)).await;
+                    instance::exclude_aux_windows_from_alt_tab(&ah);
+                });
+            }
 
             // 存储
             let store = store::Store::open().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)))?;

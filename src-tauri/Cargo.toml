@@ -1,6 +1,6 @@
 [package]
 name = "agent-quota-monitor"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "Portable-first account-level AI quota monitor (Local First)"
 license = "Apache-2.0"
@@ -15,6 +15,9 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 winreg = "0.55"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
 tauri-plugin-notification = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-opener = "2"

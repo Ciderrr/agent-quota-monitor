@@ -53,7 +53,7 @@ const collapsedB64 = (await import("node:fs")).readFileSync(join(TMP, "collapsed
 const html = `<!doctype html><html><head><meta charset="utf-8"><style>
   * { margin: 0; }
   body {
-    width: 1440px; height: 760px; overflow: hidden;
+    width: 1360px; height: 760px; overflow: hidden;
     background:
       radial-gradient(1000px 560px at 72% 0%, rgba(64, 140, 255, 0.13), transparent 62%),
       radial-gradient(860px 520px at 14% 96%, rgba(52, 199, 123, 0.09), transparent 62%),
@@ -61,11 +61,11 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
   }
   img { border-radius: 16px; }
   .expanded {
-    position: absolute; left: 148px; top: 68px; height: 624px;
+    position: absolute; left: 268px; top: 68px; height: 624px;
     box-shadow: 0 34px 90px rgba(0, 0, 0, 0.55), 0 6px 22px rgba(0, 0, 0, 0.4);
   }
   .collapsed {
-    position: absolute; left: 648px; top: 208px; height: 336px;
+    position: absolute; left: 685px; top: 212px; height: 336px;
     box-shadow: 0 26px 64px rgba(0, 0, 0, 0.5), 0 5px 18px rgba(0, 0, 0, 0.38);
   }
 </style></head><body>
@@ -75,7 +75,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
 writeFileSync(join(TMP, "compose.html"), html);
 
 const page2 = await browser.newPage();
-await page2.setViewport({ width: 1440, height: 760, deviceScaleFactor: 2 });
+await page2.setViewport({ width: 1360, height: 760, deviceScaleFactor: 2 });
 await page2.goto("file:///" + join(process.cwd(), TMP, "compose.html").replace(/\\/g, "/"), { waitUntil: "networkidle0" });
 await new Promise((r) => setTimeout(r, 300));
 await page2.screenshot({ path: OUT });
