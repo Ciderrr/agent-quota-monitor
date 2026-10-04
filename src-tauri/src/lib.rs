@@ -377,8 +377,22 @@ pub fn run() {
                     use tauri_plugin_notification::NotificationExt;
                     use tauri_plugin_updater::UpdaterExt;
                     tokio::time::sleep(std::time::Duration::from_secs(8)).await;
-                    let Ok(updater) = a.updater() else { return };
-                    let Ok(Some(u)) = updater.check().await else { return };
+                    let Ok(updater) = a.updater() else {
+                        eprintln!("[aqm] update check: updater unavailable");
+                        return;
+                    };
+                    let found = match updater.check().await {
+                        Ok(v) => v,
+                        Err(e) => {
+                            eprintln!("[aqm] update check failed: {e}");
+                            return;
+                        }
+                    };
+                    let Some(u) = found else {
+                        eprintln!("[aqm] update check: up to date");
+                        return;
+                    };
+                    eprintln!("[aqm] update check: v{} available (current v{})", u.version, u.current_version);
                     let notify_on = a
                         .state::<SharedRuntime>()
                         .inner()
