@@ -4,7 +4,7 @@
 
 **完全开源 · Local First 的 Windows 桌面浮窗，实时监控你的 AI 订阅额度与积分**
 
-Codex（ChatGPT）· MiMo Token Plan · WorkBuddy Credits · DeepSeek · ZCode·GLM Coding Plan
+Codex（ChatGPT）· MiMo · WorkBuddy · DeepSeek · Claude Code · opencode · Kimi · MiniMax · ZCode·GLM
 
 **A fully open source, Local First Windows desktop widget that monitors your AI subscription quotas and credits in real time.**
 
