@@ -55,8 +55,10 @@ pub struct Thresholds {
 }
 
 impl Default for Thresholds {
+    // 默认全 0 = 不提示：pct/余额 < 0 永不成立，通知天然静默。
+    // 打扰权交给用户——只有主动设置阈值后才开始提醒（用户裁定）。
     fn default() -> Self {
-        Self { warn: 20, crit: 10, balance: 30.0 }
+        Self { warn: 0, crit: 0, balance: 0.0 }
     }
 }
 

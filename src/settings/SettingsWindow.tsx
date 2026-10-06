@@ -32,7 +32,7 @@ export function SettingsWindow({
   const [section, setSection] = useState<Section>(initialSection);
   const [prefs, setPrefs] = useState({
     launch: false, mode: "desktop", refresh: "smart",
-    notify: true, warn: 20, crit: 10, balance: 30, glass: 100,
+    notify: true, warn: 0, crit: 0, balance: 0, glass: 100,
   });
   const set = <K extends keyof typeof prefs>(k: K, v: (typeof prefs)[K]) => setPrefs((p) => ({ ...p, [k]: v }));
   const [testState, setTestState] = useState<Record<string, "running" | "ok" | undefined>>({});
@@ -443,15 +443,15 @@ export function SettingsWindow({
                 <Row label={t("settings.notify_global")}>
                   <Switch on={prefs.notify} onChange={(v) => { set("notify", v); void notifySettings({ notifyEnabled: v }); }} />
                 </Row>
-                <Row label={t("settings.notify_warn", { value: prefs.warn })}>
-                  <ThreshPick presets={[25, 20, 15]} value={prefs.warn} onChange={(v) => setThreshold("warn", v)} unit="%" min={0} max={100} />
+                <Row label={prefs.warn === 0 ? t("settings.notify_warn_off") : t("settings.notify_warn", { value: prefs.warn })}>
+                  <ThreshPick presets={[0, 25, 20, 15]} value={prefs.warn} onChange={(v) => setThreshold("warn", v)} unit="%" min={0} max={100} />
                 </Row>
-                <Row label={t("settings.notify_crit", { value: prefs.crit })}>
-                  <ThreshPick presets={[10, 5, 3]} value={prefs.crit} onChange={(v) => setThreshold("crit", v)} unit="%" min={0} max={100} />
+                <Row label={prefs.crit === 0 ? t("settings.notify_crit_off") : t("settings.notify_crit", { value: prefs.crit })}>
+                  <ThreshPick presets={[0, 10, 5, 3]} value={prefs.crit} onChange={(v) => setThreshold("crit", v)} unit="%" min={0} max={100} />
                 </Row>
                 {snaps.deepseek?.connectionState === "connected" && (
-                  <Row label={t("settings.notify_balance")}>
-                    <ThreshPick presets={[30, 50, 100]} value={prefs.balance} onChange={(v) => setThreshold("balance", v)} unit="¥" min={0} max={10000} />
+                  <Row label={prefs.balance === 0 ? t("settings.notify_balance_off") : t("settings.notify_balance")}>
+                    <ThreshPick presets={[0, 30, 50, 100]} value={prefs.balance} onChange={(v) => setThreshold("balance", v)} unit="¥" min={0} max={10000} />
                   </Row>
                 )}
               </>
@@ -677,7 +677,7 @@ function ThreshPick({ presets, value, onChange, unit, min, max }: {
   };
   const [custom, setCustom] = useState(!presets.includes(value));
   const [draft, setDraft] = useState(String(value));
-  const fmt = (p: number) => `${unit === "%" ? "" : unit}${p}${unit === "%" ? "%" : ""}`;
+  const fmt = (p: number) => (p === 0 ? t("settings.notify_off") : `${unit === "%" ? "" : unit}${p}${unit === "%" ? "%" : ""}`);
   return (
     <span className="thresh">
       <span className="seg" role="radiogroup">
