@@ -28,3 +28,4 @@ src-tauri/.mimosa/
 .tmp-workbuddy/
 tmp-probe.json
 tmp-hero/
+latest.json
