@@ -94,6 +94,7 @@ pub fn map_summary(summary: &Value, accounts: &Value) -> Snapshot {
 
     Snapshot {
         provider_id: ID.into(),
+        account_id: None,
         account_label: Some("WorkBuddy".into()),
         plan_label: plan,
         quota_buckets: with_aggregate(buckets),
@@ -138,6 +139,7 @@ pub fn map_title(plan: &str, pkgs: &[(f64, f64, f64)]) -> Snapshot {
     }
     Snapshot {
         provider_id: ID.into(),
+        account_id: None,
         account_label: Some("WorkBuddy".into()),
         plan_label: (!plan.is_empty() && plan != "-").then(|| plan.to_string()),
         quota_buckets: with_aggregate(buckets),

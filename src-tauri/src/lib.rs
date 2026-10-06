@@ -158,11 +158,11 @@ pub fn run() {
                         {
                             let rt = app.state::<SharedRuntime>();
                             let mut r = rt.lock().unwrap();
-                            r.snapshots.insert("workbuddy".to_string(), snap.clone());
+                            r.snapshots.insert(scheduler::ik("workbuddy"), snap.clone());
                         }
                         {
                             let store = app.state::<store::Store>();
-                            store.insert_snapshot("workbuddy", &serde_json::to_string(&snap).unwrap_or_default());
+                            store.insert_snapshot("workbuddy", crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
                         }
                         let _ = app.emit("snapshot-updated", serde_json::json!({ "providerId": "workbuddy" }));
                         handled = true;
@@ -278,12 +278,15 @@ pub fn run() {
             let kv_family = store.kv_get("zcode/family");
 
             app.manage(store.clone());
-            // 启动恢复上次快照（避免重启后全部变「需要登录」）
+            // 启动恢复上次快照（避免重启后全部变「需要登录」）；键 = 实例键
             let mut boot_snaps: HashMap<String, crate::types::Snapshot> = HashMap::new();
             let mut boot_unparsed = 0usize;
-            for (id, payload) in store.load_latest_snapshots() {
+            for (id, acc, payload) in store.load_latest_snapshots() {
                 match serde_json::from_str::<crate::types::Snapshot>(&payload) {
-                    Ok(s) => { boot_snaps.insert(id, s); }
+                    Ok(mut s) => {
+                        s.account_id = Some(acc.clone());
+                        boot_snaps.insert(crate::types::instance_key(&id, &acc), s);
+                    }
                     Err(_) => { boot_unparsed += 1; }
                 }
             }
@@ -292,13 +295,15 @@ pub fn run() {
             for (id, slot) in [("deepseek", "deepseek/api-key"), ("zcode", "zcode/coding-plan-key")] {
                 let has = crate::credentials::get_credential(slot).map(|v| v.is_some()).unwrap_or(false);
                 if !has {
-                    boot_snaps.insert(id.to_string(), scheduler::not_connected_snapshot(id));
+                    boot_snaps.insert(scheduler::ik(id), scheduler::not_connected_snapshot(id));
                 }
             }
 
             app.manage::<SharedRuntime>(std::sync::Arc::new(std::sync::Mutex::new(Runtime {
                 snapshots: boot_snaps,
                 enabled,
+                // v0.4 P1：实例目录空 = 全部 Provider 单 main 账号（添加账号入口随 P3 设置页）
+                accounts: Vec::new(),
                 next_due_ms,
                 fail_count: HashMap::new(),
                 default_view,

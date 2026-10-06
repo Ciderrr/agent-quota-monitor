@@ -77,6 +77,8 @@ export type InstallationState = "installed" | "not_installed" | "unknown";
 
 export interface ProviderSnapshot {
   providerId: string;
+  /** 所属账号实例（v0.4 多账号）；undefined = 旧数据，按 main 处理 */
+  accountId?: string;
   accountLabel?: string;
   planLabel?: string;
   quotaBuckets: QuotaBucket[];
@@ -198,6 +200,8 @@ export type Confidence = "high" | "medium" | "low";
 
 export interface BucketPrediction {
   providerId: string;
+  /** 所属账号实例；undefined = 旧数据（按 main 处理） */
+  accountId?: string;
   bucketId: string;
   label: string;
   ratePctPerHour: number;

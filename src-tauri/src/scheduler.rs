@@ -21,6 +21,9 @@ pub const MAX_VISIBLE: usize = 4;
 pub struct Runtime {
     pub snapshots: HashMap<String, Snapshot>,
     pub enabled: HashMap<String, bool>,
+    /// 账号实例目录（v0.4）：每个 Provider 至少一条 main；多账号条目持久化在 kv accounts/list。
+    /// 运行态 HashMap 的键一律用实例键（"{provider}/{account}"），不再是裸 provider_id。
+    pub accounts: Vec<crate::types::AccountInstance>,
     pub next_due_ms: HashMap<String, i64>,
     pub fail_count: HashMap<String, u32>,
     pub default_view: String,
@@ -64,6 +67,40 @@ impl Default for Thresholds {
 
 pub type SharedRuntime = std::sync::Arc<Mutex<Runtime>>;
 
+/// 实例键快捷构造（单账号路径：main）
+pub fn ik(provider_id: &str) -> String {
+    crate::types::instance_key(provider_id, crate::types::MAIN_ACCOUNT)
+}
+
+/// 某 Provider 的全部实例键（实例目录空则视为单 main）；用于按 Provider 触发刷新等场景。
+/// 传入已锁定的 Runtime，避免重复加锁。
+pub fn instance_keys_in(r: &Runtime, provider_id: &str) -> Vec<String> {
+    let keys: Vec<String> = r
+        .accounts
+        .iter()
+        .filter(|a| a.provider_id == provider_id && a.enabled)
+        .map(|a| a.key())
+        .collect();
+    if keys.is_empty() { vec![ik(provider_id)] } else { keys }
+}
+
+pub fn instance_keys_for(rt: &SharedRuntime, provider_id: &str) -> Vec<String> {
+    let r = rt.lock().unwrap();
+    instance_keys_in(&r, provider_id)
+}
+
+/// 从实例键还原 provider_id（"{provider}/{account}" 的 '/' 前段；裸 id 原样返回）
+pub fn provider_of_key(key: &str) -> &str {
+    key.split_once('/').map(|(p, _)| p).unwrap_or(key)
+}
+
+/// 从实例键还原 account_id（无 '/' 视为 main）
+pub fn account_of_key(key: &str) -> String {
+    key.split_once('/')
+        .map(|(_, a)| a.to_string())
+        .unwrap_or_else(|| crate::types::MAIN_ACCOUNT.to_string())
+}
+
 fn default_interval_ms(id: &str) -> i64 {
     match id {
         "deepseek" | "zcode" => 300_000,
@@ -105,29 +142,34 @@ pub async fn tick(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::stor
             }
         }
     }
-    let due: Vec<String> = {
+    // (provider_id, instance_key) 对：实例目录空则每 Provider 视为单 main
+    let due: Vec<(String, String)> = {
         let r = rt.lock().unwrap();
         let now = chrono::Utc::now().timestamp_millis();
-        PROVIDER_IDS
-            .iter()
-            .filter(|id| r.enabled.get(**id).copied().unwrap_or(true))
-            .filter(|id| {
-                r.next_due_ms.get(**id).copied().unwrap_or(0) <= now || force_due.contains(&id.to_string())
-            })
-            .map(|id| id.to_string())
-            .collect()
+        let mut out = Vec::new();
+        for id in PROVIDER_IDS {
+            if !r.enabled.get(id).copied().unwrap_or(true) {
+                continue;
+            }
+            for k in instance_keys_in(&r, id) {
+                if r.next_due_ms.get(&k).copied().unwrap_or(0) <= now || force_due.contains(&id.to_string()) {
+                    out.push((id.to_string(), k));
+                }
+            }
+        }
+        out
     };
 
-    for id in due {
-        let snapshot = fetch_provider(&id, rt, store).await;
+    for (id, inst) in due {
+        let snapshot = fetch_provider(&inst, rt, store).await;
         let is_err = snapshot.error_state.is_some();
         let connected = snapshot.connection_state == "connected";
 
         // 退避 / 下次到期
         {
             let mut r = rt.lock().unwrap();
-            let fails = if is_err { r.fail_count.get(&id).copied().unwrap_or(0) + 1 } else { 0 };
-            r.fail_count.insert(id.clone(), fails);
+            let fails = if is_err { r.fail_count.get(&inst).copied().unwrap_or(0) + 1 } else { 0 };
+            r.fail_count.insert(inst.clone(), fails);
             let backoff = [30_000i64, 60_000, 120_000, 300_000, 600_000]
                 .get(fails.saturating_sub(1) as usize)
                 .copied()
@@ -144,10 +186,10 @@ pub async fn tick(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::stor
                 if accelerated { 45_000 } else { default_interval_ms(&id) }
             };
             let now_ms = chrono::Utc::now().timestamp_millis();
-            r.last_fetch_ms.insert(id.clone(), now_ms);
+            r.last_fetch_ms.insert(inst.clone(), now_ms);
             let jitter = rand_jitter();
-            r.next_due_ms.insert(id.clone(), now_ms + interval + jitter);
-            r.snapshots.insert(id.clone(), snapshot.clone());
+            r.next_due_ms.insert(inst.clone(), now_ms + interval + jitter);
+            r.snapshots.insert(inst.clone(), snapshot.clone());
         }
 
         // 持久化：余额样本（DeepSeek Balance history）
@@ -155,25 +197,25 @@ pub async fn tick(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::stor
             if let Some(b) = snapshot.balances.first() {
                 let fmt = |v: Option<f64>| v.map(|x| format!("{x:.2}"));
                 store.insert_balance_sample(
-                    &id, &b.currency,
+                    &id, &account_of_key(&inst), &b.currency,
                     fmt(b.total), fmt(b.granted), fmt(b.topped_up), b.available_flag,
                 );
             }
         }
-        store.insert_snapshot(&id, &serde_json::to_string(&snapshot).unwrap_or_default());
+        store.insert_snapshot(&id, &account_of_key(&inst), &serde_json::to_string(&snapshot).unwrap_or_default());
 
         // 通知（余额阈值；notification_state 去重）
         if connected && id == deepseek::ID {
-            maybe_notify_balance(app.clone(), rt, store, &snapshot);
+            maybe_notify_balance(app.clone(), rt, store, &snapshot, &inst);
         }
         // 额度阈值通知（warn/crit 两级，Windows 系统通知；PRODUCT_SPEC 承诺项）
         if connected {
-            maybe_notify_quota(app.clone(), rt, store, &snapshot);
+            maybe_notify_quota(app.clone(), rt, store, &snapshot, &inst);
         }
 
-        let _ = app.emit("snapshot-updated", json!({ "providerId": id }));
+        let _ = app.emit("snapshot-updated", json!({ "providerId": id, "instanceKey": inst }));
         eprintln!(
-            "[aqm] tick {id}: {} {}",
+            "[aqm] tick {inst}: {} {}",
             snapshot.connection_state,
             snapshot.error_state.as_ref().map(|e| e.code.clone()).unwrap_or_default(),
         );
@@ -186,8 +228,9 @@ pub async fn tick(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::stor
         {
             let r = rt.lock().unwrap();
             if !r.enabled.get(id).copied().unwrap_or(true) { continue; }
-            if r.read_in_progress.get(id).copied().unwrap_or(false) { continue; }
-            let last = r.last_session_read_ms.get(id).copied().unwrap_or(0);
+            let inst = ik(id);
+            if r.read_in_progress.get(&inst).copied().unwrap_or(false) { continue; }
+            let last = r.last_session_read_ms.get(&inst).copied().unwrap_or(0);
             if chrono::Utc::now().timestamp_millis() - last < 30 * 60 * 1000 { continue; }
         }
         let label = if id == "mimo" { "mimo-login" } else { "wb-login" };
@@ -249,7 +292,8 @@ pub fn session_cached_snapshot(
     store: &crate::store::Store,
     login_required: Snapshot,
 ) -> Snapshot {
-    let existing = rt.lock().unwrap().snapshots.get(id).cloned();
+    let inst = ik(id);
+    let existing = rt.lock().unwrap().snapshots.get(&inst).cloned();
     if let Some(s) = existing {
         if s.connection_state == "connected" || s.connection_state == "degraded" {
             return with_age_stale(s);
@@ -258,20 +302,35 @@ pub fn session_cached_snapshot(
     let stored = store
         .load_latest_snapshots()
         .into_iter()
-        .find(|(pid, _)| pid == id)
-        .and_then(|(_, json)| serde_json::from_str::<Snapshot>(&json).ok());
+        .find(|(pid, acc, _)| pid == id && acc == crate::types::MAIN_ACCOUNT)
+        .and_then(|(_, _, json)| serde_json::from_str::<Snapshot>(&json).ok());
     match stored {
         Some(s) if s.connection_state == "connected" || s.connection_state == "degraded" => with_age_stale(s),
         _ => login_required,
     }
 }
 
-pub async fn fetch_provider(id: &str, rt: &SharedRuntime, store: &crate::store::Store) -> Snapshot {
+/// 按账号实例取凭据：main 直接读旧槽（单账号零迁移）；其他账号读 "{provider}/{account}/{slot}"，
+/// 未命中回退旧槽。凭据内容本身绝不落日志/落盘（红线）。
+fn credential_for(provider: &str, account: &str, slot: &str) -> Result<Option<String>, String> {
+    if account == crate::types::MAIN_ACCOUNT {
+        return crate::credentials::get_credential(&format!("{provider}/{slot}"));
+    }
+    let nested = crate::credentials::get_credential(&format!("{provider}/{account}/{slot}"))?;
+    if nested.is_some() {
+        return Ok(nested);
+    }
+    crate::credentials::get_credential(&format!("{provider}/{slot}"))
+}
+
+pub async fn fetch_provider(inst: &str, rt: &SharedRuntime, store: &crate::store::Store) -> Snapshot {
+    let id = provider_of_key(inst);
+    let account = account_of_key(inst);
     // Codex 连接模式（连接页卡片选择，v0.3.1）：managed=强制托管组件 + 隔离登录
     let codex_prefer_managed = store.kv_get("codex/mode").as_deref() == Some("managed");
     match id {
         deepseek::ID => {
-            let key = crate::credentials::get_credential("deepseek/api-key");
+            let key = credential_for(id, &account, "api-key");
             match key {
                 Ok(Some(k)) => deepseek::fetch(&k).await,
                 Ok(None) => not_connected_snapshot(id),
@@ -279,7 +338,7 @@ pub async fn fetch_provider(id: &str, rt: &SharedRuntime, store: &crate::store::
             }
         }
         zcode::ID => {
-            let cred = crate::credentials::get_credential("zcode/coding-plan-key");
+            let cred = credential_for(id, &account, "coding-plan-key");
             let family = {
                 let r = rt.lock().unwrap();
                 r.kv_family.clone().unwrap_or_else(|| "zai".into())
@@ -310,14 +369,14 @@ pub async fn fetch_provider(id: &str, rt: &SharedRuntime, store: &crate::store::
         crate::claude::ID => crate::claude::fetch(),
         crate::opencode::ID => crate::opencode::fetch(),
         crate::kimi::ID => {
-            let key = crate::credentials::get_credential("kimi/api-key");
+            let key = credential_for(id, &account, "api-key");
             match key {
                 Ok(Some(k)) => crate::kimi::fetch(&k).await,
                 _ => not_connected_snapshot(crate::kimi::ID),
             }
         }
         crate::minimax::ID => {
-            let key = crate::credentials::get_credential("minimax/api-key");
+            let key = credential_for(id, &account, "api-key");
             match key {
                 Ok(Some(k)) => crate::minimax::fetch(&k).await,
                 _ => not_connected_snapshot(crate::minimax::ID),
@@ -327,7 +386,7 @@ pub async fn fetch_provider(id: &str, rt: &SharedRuntime, store: &crate::store::
     }
 }
 
-fn maybe_notify_balance(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::store::Store, s: &Snapshot) {
+fn maybe_notify_balance(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::store::Store, s: &Snapshot, inst: &str) {
     let Some(b) = s.balances.first() else { return };
     let Some(total) = b.total else { return };
     let (threshold, enabled) = {
@@ -338,7 +397,7 @@ fn maybe_notify_balance(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate
         return;
     }
     let sym = if b.currency == "CNY" { "¥" } else { "$" };
-    let rule_key = format!("balance<{threshold}:{}", b.currency);
+    let rule_key = format!("balance<{threshold}:{}::{}", b.currency, inst);
     let already = store.kv_get(&format!("notif::{rule_key}")).is_some();
 
     if total < threshold && !already {
@@ -362,6 +421,7 @@ fn provider_display(id: &str) -> &'static str {
 
 /// v0.2 洞察计算：桶级燃烧预测（近 24h 样本）+ DeepSeek 余额趋势 + 切换建议。
 /// 全部基于既有快照历史，零新数据源；纯计算，失败安静降级为空洞察。
+/// v0.4：快照按实例存取，预测序列按 (provider, account) 提取；predictions 数组可含多账号条目。
 pub fn compute_insights(rt: &SharedRuntime, store: &crate::store::Store) -> crate::predict::Insights {
     use crate::predict::*;
     let mut ins = Insights::default();
@@ -371,8 +431,9 @@ pub fn compute_insights(rt: &SharedRuntime, store: &crate::store::Store) -> crat
         if s.connection_state != "connected" && s.connection_state != "degraded" {
             continue;
         }
+        let acc = s.account_id.clone().unwrap_or_else(|| crate::types::MAIN_ACCOUNT.to_string());
         // 桶级燃烧预测：每个桶一条序列，fit 内部处理重置截断
-        let series = store.quota_series(&s.provider_id, 1);
+        let series = store.quota_series(&s.provider_id, &acc, 1);
         let mut preds = Vec::new();
         for (bucket_id, title, pts) in &series {
             let Some(fit) = fit_burn(pts) else { continue };
@@ -383,16 +444,17 @@ pub fn compute_insights(rt: &SharedRuntime, store: &crate::store::Store) -> crat
                 .find(|b| &b.id == bucket_id)
                 .and_then(|b| b.reset_at.as_deref())
                 .and_then(iso_to_ms);
-            if let Some(p) = build_bucket_prediction(&s.provider_id, bucket_id, title.clone(), &fit, conf, reset_ms, now) {
+            if let Some(p) = build_bucket_prediction(&s.provider_id, &acc, bucket_id, title.clone(), &fit, conf, reset_ms, now) {
                 preds.push(p);
             }
         }
         if !preds.is_empty() {
-            ins.predictions.insert(s.provider_id.clone(), preds);
+            ins.predictions.entry(s.provider_id.clone()).or_default().extend(preds);
         }
         // DeepSeek 余额趋势（¥/小时斜率 → 日均消耗 → 可支撑天数）
-        if s.provider_id == crate::deepseek::ID {
-            let raw = store.balance_series_raw(&s.provider_id, 14);
+        // P1 仅 main 实例参与：balance map 的键仍是 provider_id，多实例语义随 P3 UI 一起扩展
+        if s.provider_id == crate::deepseek::ID && acc == crate::types::MAIN_ACCOUNT {
+            let raw = store.balance_series_raw(&s.provider_id, &acc, 14);
             if let Some(fit) = fit_burn(&raw) {
                 if let Some(conf) = confidence_of(&fit) {
                     if fit.slope_per_hour < -0.005 {
@@ -427,19 +489,38 @@ pub fn compute_insights(rt: &SharedRuntime, store: &crate::store::Store) -> crat
         reset_at: Option<String>,
         connected: bool,
     }
-    let reps: Vec<Rep> = snaps
-        .iter()
-        .map(|s| {
-            let rep = representative_bucket(&s.quota_buckets);
-            Rep {
-                id: s.provider_id.clone(),
-                name: provider_display(&s.provider_id).to_string(),
-                pct: rep.as_ref().and_then(|b| b.remaining_percent),
-                reset_at: rep.and_then(|b| b.reset_at.clone()),
-                connected: s.connection_state == "connected" || s.connection_state == "degraded",
+    // v0.4：快照按实例一条，代表账号按 Provider 聚合取剩余最低者（切换建议看最坏情况）
+    let mut best: std::collections::HashMap<String, Rep> = std::collections::HashMap::new();
+    for s in &snaps {
+        let connected = s.connection_state == "connected" || s.connection_state == "degraded";
+        if !connected {
+            continue;
+        }
+        let rep = representative_bucket(&s.quota_buckets);
+        let r = Rep {
+            id: s.provider_id.clone(),
+            name: provider_display(&s.provider_id).to_string(),
+            pct: rep.as_ref().and_then(|b| b.remaining_percent),
+            reset_at: rep.and_then(|b| b.reset_at.clone()),
+            connected,
+        };
+        match best.get_mut(&s.provider_id) {
+            Some(existing) => {
+                let better = match (r.pct, existing.pct) {
+                    (Some(a), Some(b)) => a < b,
+                    (Some(_), None) => true,
+                    _ => false,
+                };
+                if better {
+                    *existing = r;
+                }
             }
-        })
-        .collect();
+            None => {
+                best.insert(s.provider_id.clone(), r);
+            }
+        }
+    }
+    let reps: Vec<Rep> = best.into_values().collect();
     for r in &reps {
         let Some(p) = r.pct else { continue };
         if !r.connected || p >= warn {
@@ -479,7 +560,7 @@ fn maybe_notify_burn(app: &tauri::AppHandle, rt: &SharedRuntime, store: &crate::
         for p in preds {
             let Some(ex) = crate::predict::iso_to_ms(&p.exhaust_at) else { continue };
             let mins = (ex - now) as f64 / 60_000.0;
-            let key = format!("notif::burn::{}::{}", pid, p.bucket_id);
+            let key = format!("notif::burn::{}::{}::{}", pid, p.account_id.as_deref().unwrap_or(crate::types::MAIN_ACCOUNT), p.bucket_id);
             if mins <= 60.0 {
                 if store.kv_get(&key).is_none() {
                     store.kv_set(&key, "1");
@@ -530,7 +611,7 @@ fn bucket_display(b: &QuotaBucket) -> String {
 /// 与 UI 同一套代表桶语义：reserve 类桶不参与告警（reserve 剩 0% 是常态，用户实测反馈）；
 /// 存在聚合桶（*/all）时只看聚合桶。同桶同级只提醒一次，缓解（crit→warn）不打扰，
 /// 回升到 warn 以上自动复位，下次跌破可再次提醒。
-fn maybe_notify_quota(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::store::Store, s: &Snapshot) {
+fn maybe_notify_quota(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::store::Store, s: &Snapshot, inst: &str) {
     let (warn, crit, enabled) = {
         let r = rt.lock().unwrap();
         (r.thresholds.warn, r.thresholds.crit, r.notify_enabled)
@@ -558,7 +639,7 @@ fn maybe_notify_quota(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::
     for b in cands {
         let Some(pct) = b.remaining_percent else { continue };
         let level = if (pct as i64) < crit { "crit" } else if (pct as i64) < warn { "warn" } else { "ok" };
-        let key = format!("notif::quota::{}::{}", s.provider_id, b.id);
+        let key = format!("notif::quota::{}::{}", inst, b.id);
         let already = store.kv_get(&key).unwrap_or_default();
         if level == "ok" {
             if !already.is_empty() {

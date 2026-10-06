@@ -2,6 +2,32 @@
 // Phase 3 引入 ts-rs/specta 生成以杜绝漂移）。
 use serde::{Deserialize, Serialize};
 
+/// 迁移默认账号：旧数据/单账号路径恒用它（凭据仍读旧槽位，零迁移）
+pub const MAIN_ACCOUNT: &str = "main";
+
+/// 运行态/存储键："{provider_id}/{account_id}"。provider_id 不含 '/'，可 rsplit 还原。
+pub fn instance_key(provider_id: &str, account_id: &str) -> String {
+    format!("{provider_id}/{account_id}")
+}
+
+/// 同 Provider 的一个账号实例（v0.4 多账号）。P1 阶段 enabled 暂不消费
+/// （总闸仍是 Provider 级），账号级开关随 P3 设置页启用。
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AccountInstance {
+    pub provider_id: String,
+    pub account_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    pub enabled: bool,
+}
+
+impl AccountInstance {
+    pub fn key(&self) -> String {
+        instance_key(&self.provider_id, &self.account_id)
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "kind", rename_all = "snake_case", rename_all_fields = "camelCase")]
 pub enum PeriodType {
@@ -89,6 +115,9 @@ pub struct ErrorState {
 #[serde(rename_all = "camelCase")]
 pub struct Snapshot {
     pub provider_id: String,
+    /// 所属账号实例；None = 旧持久化数据，按 main 处理
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub account_id: Option<String>,
     pub account_label: Option<String>,
     pub plan_label: Option<String>,
     pub quota_buckets: Vec<QuotaBucket>,
@@ -144,6 +173,7 @@ impl Snapshot {
     pub fn not_configured(provider_id: &str, usage_url: &str, endpoint_stability: &str) -> Self {
         Self {
             provider_id: provider_id.into(),
+            account_id: None,
             account_label: None,
             plan_label: None,
             quota_buckets: vec![],
@@ -161,6 +191,11 @@ impl Snapshot {
             installation: "not_installed".into(),
             usage_url: usage_url.into(),
         }
+    }
+
+    pub fn with_account(mut self, account: &str) -> Self {
+        self.account_id = Some(account.to_string());
+        self
     }
 
     pub fn with_error(mut self, code: String, detail: Option<String>) -> Self {

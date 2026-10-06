@@ -442,6 +442,7 @@ fn map_rate_limits(result: &Value) -> Snapshot {
 
     let mut snap = Snapshot {
         provider_id: ID.into(),
+        account_id: None,
         account_label: Some("ChatGPT / Codex".into()),
         plan_label: plan,
         quota_buckets: buckets,

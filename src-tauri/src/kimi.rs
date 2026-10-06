@@ -139,6 +139,7 @@ async fn fetch_coding(token: &str) -> Result<Snapshot, (String, Option<String>)>
 fn snapshot_from(buckets: Vec<QuotaBucket>, plan: Option<String>) -> Snapshot {
     Snapshot {
         provider_id: ID.into(),
+        account_id: None,
         account_label: Some("Kimi".into()),
         plan_label: plan,
         quota_buckets: buckets,

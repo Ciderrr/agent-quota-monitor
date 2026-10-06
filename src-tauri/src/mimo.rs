@@ -87,6 +87,7 @@ pub fn map_usage_detail(usage: &serde_json::Value, detail: &serde_json::Value) -
 
     let mut snap = Snapshot {
         provider_id: ID.into(),
+        account_id: None,
         account_label: Some("MiMo Token Plan".into()),
         plan_label: plan,
         quota_buckets: buckets,

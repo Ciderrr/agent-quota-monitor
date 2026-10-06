@@ -96,6 +96,7 @@ fn fetch_inner() -> Snapshot {
 
     Snapshot {
         provider_id: ID.into(),
+        account_id: None,
         account_label: Some("Claude Code".into()),
         plan_label: None,
         quota_buckets: vec![

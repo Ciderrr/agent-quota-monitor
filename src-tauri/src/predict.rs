@@ -10,6 +10,9 @@ use serde::Serialize;
 #[serde(rename_all = "camelCase")]
 pub struct BucketPrediction {
     pub provider_id: String,
+    /// 所属账号实例（v0.4 多账号）；None = 旧数据兼容（按 main 处理）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub account_id: Option<String>,
     pub bucket_id: String,
     pub label: String,
     pub rate_pct_per_hour: f64,
@@ -62,6 +65,7 @@ pub fn iso_to_ms(s: &str) -> Option<i64> {
 /// 由拟合结果构造对外预测：套四道门槛（燃烧中 / 可耗尽 / 7 天内 / 重置先到则不出）
 pub fn build_bucket_prediction(
     provider_id: &str,
+    account_id: &str,
     bucket_id: &str,
     label: String,
     fit: &Fit,
@@ -85,6 +89,7 @@ pub fn build_bucket_prediction(
     let margin_ms = ((exhaust_in_h * 0.25).clamp(1.0 / 6.0, 6.0) * 3_600_000.0) as i64;
     Some(BucketPrediction {
         provider_id: provider_id.into(),
+        account_id: Some(account_id.into()),
         bucket_id: bucket_id.into(),
         label,
         rate_pct_per_hour: fit.slope_per_hour,

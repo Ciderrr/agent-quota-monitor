@@ -92,6 +92,7 @@ async fn fetch_inner(key: &str, family: &str) -> Result<Snapshot, (String, Optio
 
     Ok(Snapshot {
         provider_id: ID.into(),
+        account_id: None,
         account_label: None,
         plan_label: level,
         quota_buckets: buckets,

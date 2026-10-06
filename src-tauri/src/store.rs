@@ -30,6 +30,8 @@ impl Store {
              CREATE INDEX IF NOT EXISTS idx_balance_ts ON balance_samples(provider_id, ts);",
         )
         .map_err(|e| e.to_string())?;
+        ensure_account_columns(&conn);
+        migrate_notif_keys(&conn);
         Ok(Self { conn: Arc::new(Mutex::new(conn)) })
     }
 
@@ -47,45 +49,46 @@ impl Store {
         }
     }
 
-    pub fn insert_snapshot(&self, provider_id: &str, payload: &str) {
+    pub fn insert_snapshot(&self, provider_id: &str, account_id: &str, payload: &str) {
         if let Ok(c) = self.conn.lock() {
             let ts = chrono::Utc::now().timestamp_millis();
             let _ = c.execute(
-                "INSERT OR REPLACE INTO snapshots(provider_id, fetched_at, schema_ver, payload) VALUES(?1, ?2, 1, ?3)",
-                rusqlite::params![provider_id, ts, payload],
+                "INSERT OR REPLACE INTO snapshots(provider_id, account_id, fetched_at, schema_ver, payload) VALUES(?1, ?2, ?3, 1, ?4)",
+                rusqlite::params![provider_id, account_id, ts, payload],
             );
         }
     }
 
     /// 余额样本（十进制以 TEXT 存，精度安全）
     pub fn insert_balance_sample(
-        &self, provider_id: &str, currency: &str,
+        &self, provider_id: &str, account_id: &str, currency: &str,
         total: Option<String>, granted: Option<String>, topped_up: Option<String>, available: Option<bool>,
     ) {
         if let Ok(c) = self.conn.lock() {
             let ts = chrono::Utc::now().timestamp_millis();
             let _ = c.execute(
-                "INSERT OR REPLACE INTO balance_samples(provider_id, ts, currency, total, granted, topped_up, available_flag)
-                 VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                rusqlite::params![provider_id, ts, currency, total, granted, topped_up, available.map(|b| b as i64)],
+                "INSERT OR REPLACE INTO balance_samples(provider_id, account_id, ts, currency, total, granted, topped_up, available_flag)
+                 VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                rusqlite::params![provider_id, account_id, ts, currency, total, granted, topped_up, available.map(|b| b as i64)],
             );
         }
     }
 
-    /// 启动时恢复各 Provider 最近一次快照
-    pub fn load_latest_snapshots(&self) -> Vec<(String, String)> {
+    /// 启动时恢复各账号实例最近一次快照：(provider_id, account_id, payload)
+    pub fn load_latest_snapshots(&self) -> Vec<(String, String, String)> {
         let Ok(c) = self.conn.lock() else {
             return vec![];
         };
         let mut stmt = match c.prepare(
-            "SELECT provider_id, payload FROM snapshots s
-             WHERE fetched_at = (SELECT MAX(fetched_at) FROM snapshots x WHERE x.provider_id = s.provider_id)",
+            "SELECT provider_id, account_id, payload FROM snapshots s
+             WHERE fetched_at = (SELECT MAX(fetched_at) FROM snapshots x
+                                 WHERE x.provider_id = s.provider_id AND x.account_id = s.account_id)",
         ) {
             Ok(s) => s,
             Err(_) => return vec![],
         };
         let rows = stmt.query_map([], |r| {
-            Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+            Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?))
         });
         match rows {
             Ok(it) => it.filter_map(|x| x.ok()).collect(),
@@ -93,28 +96,37 @@ impl Store {
         }
     }
 
-    /// 清除某 Provider 的历史（换 Key / 清除凭证时调用，避免旧账号数据混入）
-    pub fn purge_provider_history(&self, provider_id: &str) {
+    /// 清除某账号实例的历史（换 Key / 删除账号时调用，避免旧账号数据混入）
+    pub fn purge_account_history(&self, provider_id: &str, account_id: &str) {
         if let Ok(c) = self.conn.lock() {
-            let _ = c.execute("DELETE FROM balance_samples WHERE provider_id = ?1", [provider_id]);
-            let _ = c.execute("DELETE FROM snapshots WHERE provider_id = ?1", [provider_id]);
+            let _ = c.execute(
+                "DELETE FROM balance_samples WHERE provider_id = ?1 AND account_id = ?2",
+                rusqlite::params![provider_id, account_id],
+            );
+            let _ = c.execute(
+                "DELETE FROM snapshots WHERE provider_id = ?1 AND account_id = ?2",
+                rusqlite::params![provider_id, account_id],
+            );
         }
     }
 
     /// 从 snapshots 表提取额度百分比序列（真实存档渲染，不造假数据）。
     /// 返回 (bucket_id, 桶标题, [(ts_ms, remaining_percent)])；每天每个 tick 的快照都在库里。
-    pub fn quota_series(&self, provider_id: &str, days: i64) -> Vec<(String, String, Vec<(i64, f64)>)> {
+    pub fn quota_series(&self, provider_id: &str, account_id: &str, days: i64) -> Vec<(String, String, Vec<(i64, f64)>)> {
         let c = self.conn.lock().ok();
         let Some(c) = c else { return vec![] };
         let since = chrono::Utc::now().timestamp_millis() - days * 86_400_000;
         let mut stmt = match c.prepare(
-            "SELECT fetched_at, payload FROM snapshots WHERE provider_id = ?1 AND fetched_at >= ?2 ORDER BY fetched_at",
+            "SELECT fetched_at, payload FROM snapshots
+             WHERE provider_id = ?1 AND account_id = ?2 AND fetched_at >= ?3 ORDER BY fetched_at",
         ) {
             Ok(s) => s,
             Err(_) => return vec![],
         };
         let rows: Vec<(i64, String)> = stmt
-            .query_map([provider_id, &since.to_string()], |r| Ok((r.get(0)?, r.get(1)?)))
+            .query_map(rusqlite::params![provider_id, account_id, since], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })
             .ok()
             .map(|it| it.filter_map(|r| r.ok()).collect())
             .unwrap_or_default();
@@ -134,18 +146,21 @@ impl Store {
     }
 
     /// 余额原始序列（v0.2 余额趋势预测）：近 N 天 (ts_ms, total)，不去重到天
-    pub fn balance_series_raw(&self, provider_id: &str, days: i64) -> Vec<(i64, f64)> {
+    pub fn balance_series_raw(&self, provider_id: &str, account_id: &str, days: i64) -> Vec<(i64, f64)> {
         let c = self.conn.lock().ok();
         let Some(c) = c else { return vec![] };
         let since = chrono::Utc::now().timestamp_millis() - days * 86_400_000;
         let mut stmt = match c.prepare(
-            "SELECT ts, total FROM balance_samples WHERE provider_id = ?1 AND ts >= ?2 AND total IS NOT NULL ORDER BY ts",
+            "SELECT ts, total FROM balance_samples
+             WHERE provider_id = ?1 AND account_id = ?2 AND ts >= ?3 AND total IS NOT NULL ORDER BY ts",
         ) {
             Ok(s) => s,
             Err(_) => return vec![],
         };
         let rows: Vec<(i64, String)> = stmt
-            .query_map([provider_id, &since.to_string()], |r| Ok((r.get(0)?, r.get(1)?)))
+            .query_map(rusqlite::params![provider_id, account_id, since], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })
             .ok()
             .map(|it| it.filter_map(|r| r.ok()).collect())
             .unwrap_or_default();
@@ -155,17 +170,21 @@ impl Store {
     }
 
     /// 近 N 天余额序列（History；只如实呈现，不做差值推算——Gate A.1 规则）
-    pub fn balance_series(&self, provider_id: &str, days: i64) -> Vec<(String, f64)> {        let c = self.conn.lock().ok();
+    pub fn balance_series(&self, provider_id: &str, account_id: &str, days: i64) -> Vec<(String, f64)> {
+        let c = self.conn.lock().ok();
         let Some(c) = c else { return vec![] };
         let since = chrono::Utc::now().timestamp_millis() - days * 86_400_000;
         let mut stmt = match c.prepare(
-            "SELECT ts, total FROM balance_samples WHERE provider_id = ?1 AND ts >= ?2 ORDER BY ts",
+            "SELECT ts, total FROM balance_samples
+             WHERE provider_id = ?1 AND account_id = ?2 AND ts >= ?3 ORDER BY ts",
         ) {
             Ok(s) => s,
             Err(_) => return vec![],
         };
         let rows: Vec<(i64, String)> = stmt
-            .query_map([provider_id, &since.to_string()], |r| Ok((r.get(0)?, r.get(1)?)))
+            .query_map(rusqlite::params![provider_id, account_id, since], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })
             .ok()
             .map(|it| it.filter_map(|r| r.ok()).collect())
             .unwrap_or_default();
@@ -181,6 +200,42 @@ impl Store {
             }
         }
         out
+    }
+}
+
+/// v0.4 多账号迁移：老库加 account_id 列（默认 main），幂等
+fn ensure_account_columns(conn: &Connection) {
+    for table in ["snapshots", "balance_samples"] {
+        let has_col = conn
+            .prepare(&format!("PRAGMA table_info({table})"))
+            .and_then(|mut s| {
+                s.query_map([], |r| r.get::<_, String>(1))
+                    .map(|it| it.filter_map(|x| x.ok()).any(|c| c == "account_id"))
+            })
+            .unwrap_or(true); // 检查失败不动表，避免误 ALTER
+        if !has_col {
+            let _ = conn.execute(
+                &format!("ALTER TABLE {table} ADD COLUMN account_id TEXT NOT NULL DEFAULT 'main'"),
+                [],
+            );
+            eprintln!("[aqm] migrated {table}: added account_id column (default main)");
+        }
+    }
+}
+
+/// 通知去重 key 升级（provider → provider/account）：旧 key 一次性清空，
+/// 代价仅升级后首轮可能重发一次告警；用 kv 标记防重复执行
+fn migrate_notif_keys(conn: &Connection) {
+    let marked = conn
+        .query_row("SELECT value FROM kv WHERE key = 'migr/notif-v2'", [], |r| r.get::<_, String>(0))
+        .is_ok();
+    if !marked {
+        let _ = conn.execute("DELETE FROM kv WHERE key LIKE 'notif::%'", []);
+        let _ = conn.execute(
+            "INSERT INTO kv(key, value) VALUES('migr/notif-v2', '1')",
+            [],
+        );
+        eprintln!("[aqm] migrated notif dedup keys (provider -> provider/account)");
     }
 }
 

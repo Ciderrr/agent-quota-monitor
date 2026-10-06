@@ -95,7 +95,8 @@ pub fn get_snapshots(rt: State<SharedRuntime>) -> Vec<Snapshot> {
     PROVIDER_IDS
         .iter()
         .filter(|id| r.enabled.get(**id).copied().unwrap_or(true))
-        .filter_map(|id| r.snapshots.get(*id).cloned())
+        .flat_map(|id| crate::scheduler::instance_keys_in(&r, id))
+        .filter_map(|k| r.snapshots.get(&k).cloned())
         .collect()
 }
 
@@ -129,16 +130,23 @@ pub async fn refresh_now(
             Ok(())
         }
         _ => {
-            // HTTP 型与显隐：置到期并跑 tick
+            // HTTP 型与显隐：置到期并跑 tick（按实例键；裸 provider_id 触发其全部实例）
             let due_now = chrono::Utc::now().timestamp_millis() - 1;
             let is_all = id.is_none();
             {
                 let mut r = rt.lock().unwrap();
                 match id {
-                    Some(id) => r.next_due_ms.insert(id, due_now),
+                    Some(id) => {
+                        for k in crate::scheduler::instance_keys_in(&r, &id) {
+                            r.next_due_ms.insert(k, due_now);
+                        }
+                    }
                     None => {
-                        for p in PROVIDER_IDS { r.next_due_ms.insert(p.to_string(), due_now); }
-                        Some(0)
+                        for p in PROVIDER_IDS {
+                            for k in crate::scheduler::instance_keys_in(&r, p) {
+                                r.next_due_ms.insert(k, due_now);
+                            }
+                        }
                     }
                 };
             }
@@ -198,7 +206,9 @@ pub fn set_provider_enabled(
         // 启用瞬间立即抓取（v0.3.1）：否则要等下一个 30s tick 才有快照，
         // 主界面最长 40s 不出现新行——用户会以为卡死而反复点击
         if enabled {
-            r.next_due_ms.insert(id.clone(), 0);
+            for k in crate::scheduler::instance_keys_in(&r, &id) {
+                r.next_due_ms.insert(k, 0);
+            }
         }
     }
     let _ = app.emit("providers-changed", json!({ "id": id, "enabled": enabled }));
@@ -208,17 +218,21 @@ pub fn set_provider_enabled(
         let s2 = store.inner().clone();
         let id2 = id.clone();
         tauri::async_runtime::spawn(async move {
-            let snap = crate::scheduler::fetch_provider(&id2, &rt2, &s2).await;
-            let now = chrono::Utc::now().timestamp_millis();
-            {
-                let mut r = rt2.lock().unwrap();
-                r.snapshots.insert(id2.clone(), snap.clone());
-                r.last_fetch_ms.insert(id2.clone(), now);
-                // 抓完即排定常规节奏，避免下一 tick 立刻重复抓
-                r.next_due_ms.insert(id2.clone(), now + 300_000);
+            // 逐实例立即抓取（多账号 Provider 全部刷新）
+            for inst in crate::scheduler::instance_keys_for(&rt2, &id2) {
+                let snap = crate::scheduler::fetch_provider(&inst, &rt2, &s2).await;
+                let now = chrono::Utc::now().timestamp_millis();
+                {
+                    let mut r = rt2.lock().unwrap();
+                    r.snapshots.insert(inst.clone(), snap.clone());
+                    r.last_fetch_ms.insert(inst.clone(), now);
+                    // 抓完即排定常规节奏，避免下一 tick 立刻重复抓
+                    r.next_due_ms.insert(inst.clone(), now + 300_000);
+                }
+                let acc = crate::scheduler::account_of_key(&inst);
+                s2.insert_snapshot(&id2, &acc, &serde_json::to_string(&snap).unwrap_or_default());
+                let _ = a2.emit("snapshot-updated", json!({ "providerId": id2 }));
             }
-            s2.insert_snapshot(&id2, &serde_json::to_string(&snap).unwrap_or_default());
-            let _ = a2.emit("snapshot-updated", json!({ "providerId": id2 }));
         });
     }
     Ok(())
@@ -251,17 +265,17 @@ pub async fn connect_with_credential(
         }
         _ => return Err(format!("provider {id} does not support credential connection in Gate D")),
     }
-    let snap = crate::scheduler::fetch_provider(&id, &rt, &store).await;
+    let snap = crate::scheduler::fetch_provider(&crate::scheduler::ik(&id), &rt, &store).await;
     let ok = snap.error_state.is_none();
     if ok {
-        // 换新账号：清掉旧历史，避免混入
-        store.purge_provider_history(&id);
-        rt.lock().unwrap().snapshots.insert(id.clone(), snap.clone());
-        store.insert_snapshot(&id, &serde_json::to_string(&snap).unwrap_or_default());
+        // 换新账号：清掉旧历史，避免混入（P1：连接固定 main 账号）
+        store.purge_account_history(&id, crate::types::MAIN_ACCOUNT);
+        rt.lock().unwrap().snapshots.insert(crate::scheduler::ik(&id), snap.clone());
+        store.insert_snapshot(&id, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
         if id == "deepseek" {
             if let Some(b) = snap.balances.first() {
                 let fmt = |v: Option<f64>| v.map(|x| format!("{x:.2}"));
-                store.insert_balance_sample("deepseek", &b.currency, fmt(b.total), fmt(b.granted), fmt(b.topped_up), b.available_flag);
+                store.insert_balance_sample("deepseek", crate::types::MAIN_ACCOUNT, &b.currency, fmt(b.total), fmt(b.granted), fmt(b.topped_up), b.available_flag);
             }
         }
         let _ = app.emit("snapshot-updated", json!({ "providerId": id }));
@@ -274,7 +288,7 @@ pub async fn connect_with_credential(
             "minimax" => { let _ = credentials::delete_credential("minimax/api-key"); }
             _ => {}
         }
-        rt.lock().unwrap().snapshots.insert(id.clone(), crate::scheduler::not_connected_snapshot(&id));
+        rt.lock().unwrap().snapshots.insert(crate::scheduler::ik(&id), crate::scheduler::not_connected_snapshot(&id));
     }
     Ok(json!({ "ok": ok, "message": snap.error_state.map(|e| e.code) }))
 }
@@ -288,8 +302,8 @@ pub fn clear_credential(app: AppHandle, rt: State<SharedRuntime>, store: State<S
         "minimax" => credentials::delete_credential("minimax/api-key")?,
         _ => return Err("unknown provider".into()),
     }
-    store.purge_provider_history(&id);
-    rt.lock().unwrap().snapshots.insert(id.clone(), crate::scheduler::not_connected_snapshot(&id));
+    store.purge_account_history(&id, crate::types::MAIN_ACCOUNT);
+    rt.lock().unwrap().snapshots.insert(crate::scheduler::ik(&id), crate::scheduler::not_connected_snapshot(&id));
     let _ = app.emit("snapshot-updated", json!({ "providerId": id }));
     Ok(())
 }
@@ -339,15 +353,15 @@ pub fn clear_provider_session(
         "mimo" => crate::mimo::login_required(),
         _ => crate::workbuddy::login_required(),
     };
-    rt.lock().unwrap().snapshots.insert(id.clone(), snap.clone());
-    store.insert_snapshot(&id, &serde_json::to_string(&snap).unwrap_or_default());
+    rt.lock().unwrap().snapshots.insert(crate::scheduler::ik(&id), snap.clone());
+    store.insert_snapshot(&id, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
     let _ = app.emit("snapshot-updated", json!({ "providerId": id }));
     Ok(())
 }
 
 #[tauri::command]
 pub fn get_history(store: State<Store>) -> Vec<HistorySeries> {
-    let points = store.balance_series("deepseek", 30);
+    let points = store.balance_series("deepseek", crate::types::MAIN_ACCOUNT, 30);
     let today = points.last().map(|p| p.1).unwrap_or(0.0);
     vec![HistorySeries {
         provider_id: "deepseek".into(),
@@ -365,7 +379,8 @@ pub fn get_history(store: State<Store>) -> Vec<HistorySeries> {
 pub fn get_quota_history(store: State<Store>, provider_id: String, days: Option<i64>) -> Vec<HistorySeries> {
     let days = days.unwrap_or(7).clamp(1, 30);
     let mut out = vec![];
-    for (_bucket_id, title, pts) in store.quota_series(&provider_id, days) {
+    // P1：详情页尚无账号维度，取 main 账号序列（多账号 Tab 随 P3 设置页一起上）
+    for (_bucket_id, title, pts) in store.quota_series(&provider_id, crate::types::MAIN_ACCOUNT, days) {
         if pts.is_empty() { continue; }
         let n = pts.len();
         let step = (((n as f64) / 40.0).ceil().max(1.0)) as usize;
@@ -486,7 +501,9 @@ pub fn refresh_all(app: AppHandle, rt: State<SharedRuntime>, store: State<Store>
     {
         let mut r = rt.lock().unwrap();
         for p in PROVIDER_IDS {
-            r.next_due_ms.insert(p.to_string(), 0);
+            for k in crate::scheduler::instance_keys_in(&r, p) {
+                r.next_due_ms.insert(k, 0);
+            }
         }
     }
     let a = app.clone();
@@ -601,9 +618,9 @@ pub async fn codex_read_rate_limits(
     let snap = crate::codex::fetch_via_app_server_ctx(prefer_managed).await;
     {
         let mut r = rt.lock().unwrap();
-        r.snapshots.insert("codex".to_string(), snap.clone());
+        r.snapshots.insert(crate::scheduler::ik("codex"), snap.clone());
     }
-    store.insert_snapshot("codex", &serde_json::to_string(&snap).unwrap_or_default());
+    store.insert_snapshot("codex", crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
     let _ = app.emit("snapshot-updated", json!({ "providerId": "codex" }));
     Ok(serde_json::to_value(&snap).unwrap_or_default())
 }
@@ -625,9 +642,9 @@ pub async fn codex_logout(
                 .with_error("login_expired".into(), Some("monitor disconnected".into()));
             {
                 let mut r = rt.lock().unwrap();
-                r.snapshots.insert("codex".to_string(), snap.clone());
+                r.snapshots.insert(crate::scheduler::ik("codex"), snap.clone());
             }
-            store.insert_snapshot("codex", &serde_json::to_string(&snap).unwrap_or_default());
+            store.insert_snapshot("codex", crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
             let _ = app.emit("snapshot-updated", json!({ "providerId": "codex" }));
             json!({ "ok": true, "scope": "monitor-only" })
         })
@@ -721,7 +738,7 @@ pub fn mimo_close_login(app: AppHandle) {
 fn mark_session_auth_required(app: &AppHandle, rt: &SharedRuntime, store: &Store, id: &str, detail: &str) {
     let snap = {
         let mut r = rt.lock().unwrap();
-        match r.snapshots.get_mut(id) {
+        match r.snapshots.get_mut(&crate::scheduler::ik(id)) {
             Some(s) if s.connection_state == "connected" || s.connection_state == "degraded" => {
                 s.connection_state = "auth_required".into();
                 s.error_state = Some(ErrorState {
@@ -735,7 +752,7 @@ fn mark_session_auth_required(app: &AppHandle, rt: &SharedRuntime, store: &Store
         }
     };
     if let Some(s) = snap {
-        store.insert_snapshot(id, &serde_json::to_string(&s).unwrap_or_default());
+        store.insert_snapshot(id, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&s).unwrap_or_default());
         let _ = app.emit("snapshot-updated", json!({ "providerId": id }));
     }
 }
@@ -744,16 +761,17 @@ fn mark_session_auth_required(app: &AppHandle, rt: &SharedRuntime, store: &Store
 /// 拿不到锁直接返回 busy（调用方继续等下一轮即可），绝不开第二个并行读取循环。
 fn try_begin_session_read(rt: &SharedRuntime, id: &str) -> bool {
     let mut r = rt.lock().unwrap();
-    if r.read_in_progress.get(id).copied().unwrap_or(false) {
+    let inst = crate::scheduler::ik(id);
+    if r.read_in_progress.get(&inst).copied().unwrap_or(false) {
         return false;
     }
-    r.read_in_progress.insert(id.to_string(), true);
-    r.last_session_read_ms.insert(id.to_string(), chrono::Utc::now().timestamp_millis());
+    r.read_in_progress.insert(inst.clone(), true);
+    r.last_session_read_ms.insert(inst, chrono::Utc::now().timestamp_millis());
     true
 }
 
 fn end_session_read(rt: &SharedRuntime, id: &str) {
-    rt.lock().unwrap().read_in_progress.insert(id.to_string(), false);
+    rt.lock().unwrap().read_in_progress.insert(crate::scheduler::ik(id), false);
 }
 
 /// MiMo：会话读取核心逻辑（命令包装与「全部刷新」共用）
@@ -823,7 +841,7 @@ async fn session_read_mimo_inner(app: AppHandle, rt: SharedRuntime, store: Store
     // 以 fetched_at 变化判定新数据到达（旧快照本就是 connected，不能当作新读成功）
     let old_fetched = {
         let r = rt.lock().unwrap();
-        r.snapshots.get(crate::mimo::ID).map(|s| s.fetched_at.clone())
+        r.snapshots.get(&crate::scheduler::ik(crate::mimo::ID)).map(|s| s.fetched_at.clone())
     };
     // IIFE 每 2s 重发（页面加载时序不可控）；AQMERR 出现即刻早退反馈，不再傻等 45s（④）
     let mut last_err = String::new();
@@ -834,7 +852,7 @@ async fn session_read_mimo_inner(app: AppHandle, rt: SharedRuntime, store: Store
         }
         let snap = {
             let r = rt.lock().unwrap();
-            r.snapshots.get(crate::mimo::ID).cloned()
+            r.snapshots.get(&crate::scheduler::ik(crate::mimo::ID)).cloned()
         };
         if let Some(s) = snap {
             if s.connection_state == "connected" && Some(&s.fetched_at) != old_fetched.as_ref() {
@@ -885,12 +903,12 @@ pub(crate) fn store_mimo_payload(
             .map(|w| w.is_visible().unwrap_or(false))
             .unwrap_or(false);
         if visible {
-            let cur = rt.lock().unwrap().snapshots.get(crate::mimo::ID).cloned();
+            let cur = rt.lock().unwrap().snapshots.get(&crate::scheduler::ik(crate::mimo::ID)).cloned();
             return cur.unwrap_or_else(|| crate::mimo::login_required());
         }
         {
             let mut r = rt.lock().unwrap();
-            match r.snapshots.get_mut(crate::mimo::ID) {
+            match r.snapshots.get_mut(&crate::scheduler::ik(crate::mimo::ID)) {
                 Some(s) if s.connection_state == "connected" || s.connection_state == "degraded" => {
                     s.connection_state = "auth_required".into();
                     s.error_state = Some(ErrorState {
@@ -902,18 +920,18 @@ pub(crate) fn store_mimo_payload(
                 _ => {}
             }
         }
-        let snap = rt.lock().unwrap().snapshots.get(crate::mimo::ID).cloned();
+        let snap = rt.lock().unwrap().snapshots.get(&crate::scheduler::ik(crate::mimo::ID)).cloned();
         let snap = snap.unwrap_or_else(|| crate::mimo::login_required());
-        store.insert_snapshot(crate::mimo::ID, &serde_json::to_string(&snap).unwrap_or_default());
+        store.insert_snapshot(crate::mimo::ID, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
         let _ = app.emit("snapshot-updated", json!({ "providerId": "mimo" }));
         return snap;
     }
     let snap = crate::mimo::map_usage_detail(&usage, &detail);
     {
         let mut r = rt.lock().unwrap();
-        r.snapshots.insert(crate::mimo::ID.to_string(), snap.clone());
+        r.snapshots.insert(crate::scheduler::ik(crate::mimo::ID), snap.clone());
     }
-    store.insert_snapshot(crate::mimo::ID, &serde_json::to_string(&snap).unwrap_or_default());
+    store.insert_snapshot(crate::mimo::ID, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
     let _ = app.emit("snapshot-updated", json!({ "providerId": "mimo" }));
     snap
 }
@@ -1008,9 +1026,9 @@ pub fn workbuddy_store_line(
     let snap = crate::workbuddy::map_title(&plan, &pkgs);
     {
         let mut r = rt.lock().unwrap();
-        r.snapshots.insert(crate::workbuddy::ID.to_string(), snap.clone());
+        r.snapshots.insert(crate::scheduler::ik(crate::workbuddy::ID), snap.clone());
     }
-    store.insert_snapshot(crate::workbuddy::ID, &serde_json::to_string(&snap).unwrap_or_default());
+    store.insert_snapshot(crate::workbuddy::ID, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
     let _ = app.emit("snapshot-updated", json!({ "providerId": "workbuddy" }));
     Ok(serde_json::to_value(&snap).unwrap_or_default())
 }
@@ -1048,7 +1066,7 @@ async fn session_read_workbuddy_inner(
     }
     let old_fetched = {
         let r = rt.lock().unwrap();
-        r.snapshots.get(crate::workbuddy::ID).map(|s| s.fetched_at.clone())
+        r.snapshots.get(&crate::scheduler::ik(crate::workbuddy::ID)).map(|s| s.fetched_at.clone())
     };
     for i in 0..60 {
         if i >= 2 && i % 4 == 2 {
@@ -1062,7 +1080,7 @@ async fn session_read_workbuddy_inner(
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         let snap = {
             let r = rt.lock().unwrap();
-            r.snapshots.get(crate::workbuddy::ID).cloned()
+            r.snapshots.get(&crate::scheduler::ik(crate::workbuddy::ID)).cloned()
         };
         if let Some(s) = snap {
             if s.connection_state == "connected" && Some(&s.fetched_at) != old_fetched.as_ref() {
@@ -1078,9 +1096,9 @@ async fn session_read_workbuddy_inner(
                         if let Some(snap) = parse_wb_line(&line) {
                             {
                                 let mut r = rt.lock().unwrap();
-                                r.snapshots.insert(crate::workbuddy::ID.to_string(), snap.clone());
+                                r.snapshots.insert(crate::scheduler::ik(crate::workbuddy::ID), snap.clone());
                             }
-                            store.insert_snapshot(crate::workbuddy::ID, &serde_json::to_string(&snap).unwrap_or_default());
+                            store.insert_snapshot(crate::workbuddy::ID, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
                             let _ = app.emit("snapshot-updated", json!({ "providerId": "workbuddy" }));
                             let _ = w.eval("location.hash = '';"); // 用后即清，防下次误读旧值
                             return Ok(serde_json::to_value(&snap).unwrap_or_default());
@@ -1175,9 +1193,9 @@ pub(crate) fn store_workbuddy_payload(
     let snap = crate::workbuddy::map_summary(&summary, &accounts_val);
     {
         let mut r = rt.lock().unwrap();
-        r.snapshots.insert(crate::workbuddy::ID.to_string(), snap.clone());
+        r.snapshots.insert(crate::scheduler::ik(crate::workbuddy::ID), snap.clone());
     }
-    store.insert_snapshot(crate::workbuddy::ID, &serde_json::to_string(&snap).unwrap_or_default());
+    store.insert_snapshot(crate::workbuddy::ID, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
     let _ = app.emit("snapshot-updated", json!({ "providerId": "workbuddy" }));
     snap
 }
