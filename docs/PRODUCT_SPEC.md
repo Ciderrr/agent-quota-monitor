@@ -1,6 +1,6 @@
 # PRODUCT_SPEC.md — AI Agent 用量监控浮窗
 
-> 版本 0.2（Gate B 修订：Portable-first）· 2026-09-28 · 状态：Gate B 自审通过，进入 Phase 1 UI Prototype
+> 版本 0.2（Gate B 修订：Portable-first） · 状态：Gate B 自审通过，进入 Phase 1 UI Prototype
 > 最高级原则：**Account-level AI Quota Monitor，Portable-first**（见 PORTABLE_FIRST.md）——Clean PC 只装 Monitor 即可监控全部 Provider；本机 Agent 仅为 Optional Enhancement。
 
 ## 1. 一句话定位

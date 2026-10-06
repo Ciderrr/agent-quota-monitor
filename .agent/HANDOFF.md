@@ -1,8 +1,8 @@
 # HANDOFF.md — 开发交接文档（v0.3.0 → 下一窗口）
 
-> 交接日期：2026-10-06 · 交出方：ZCode（GLM-5.3-Flash）会话 · 接手方：新窗口
+> 交出方：ZCode（GLM-5.3-Flash）会话 · 接手方：新窗口
 > 阅读顺序：**本文件** → docs/README.md（索引）→ docs/provider-discovery/*（按需）
-> ⚠️ 本文件取代 2026-09-29 版 HANDOFF（历史见 git log 与 .agent/CHANGELOG_*）。
+> ⚠️ 本文件取代旧版 HANDOFF（历史见 git log 与 .agent/CHANGELOG_*）。
 
 ---
 

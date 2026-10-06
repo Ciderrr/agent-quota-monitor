@@ -1,6 +1,5 @@
 # CHANGELOG — Gate A.1 修正与运行时验证
 
-- 执行日期：2026-09-28
 - 范围：仅 Gate A.1 指定项。**未进入 Phase 1，未开始 UI 或正式 Provider 实现。**
 - 前置状态：Gate A = CONDITIONAL PASS；本变更完成后停止，等待审查。
 

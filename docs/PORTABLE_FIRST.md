@@ -1,6 +1,6 @@
 # PORTABLE_FIRST.md — Portable-first Provider Architecture（最高级产品原则）
 
-> 版本 1.0 · 2026-09-28 · 取代此前"依赖本机 Agent"的隐含假设
+> 版本 1.0 · 取代此前"依赖本机 Agent"的隐含假设
 > 一句话：本产品是 **Account-level AI Quota Monitor**，不是 **Local Agent Companion**。
 
 ---
@@ -63,7 +63,7 @@
 
 > Process detection = Refresh optimization，**绝不是** Data source requirement。
 
-## 7. Gate B Self-Audit（修订后自查结果，2026-09-28）
+## 7. Gate B Self-Audit（修订后自查结果）
 
 | 检查项 | 结论 |
 |---|---|

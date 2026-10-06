@@ -1,6 +1,6 @@
 # Agent Quota Monitor — 文档索引
 
-研究日期 2026-09-28 / 更新 2026-09-29（Gate F）。当前状态：**Gate A–E 已通过；Phase 4 / Gate F 完成，等待用户终验**（DeepSeek / Codex / MiMo 可用；ZCode 适配器就绪待真实 Key）。交接（MiMo Desktop → ZCode / GLM-5.3-Flash）：见 [HANDOFF.md](../.agent/HANDOFF.md)、[CHANGELOG_GATE_E.md](../.agent/CHANGELOG_GATE_E.md) 与 [PROMPT_FOR_ZCODE_GLM.md](../.agent/handoff/PROMPT_FOR_ZCODE_GLM.md)。Gate F 产出：[CHANGELOG_GATE_F.md](../.agent/CHANGELOG_GATE_F.md)。
+当前状态：**Gate A–E 已通过；Phase 4 / Gate F 完成，等待用户终验**（DeepSeek / Codex / MiMo 可用；ZCode 适配器就绪待真实 Key）。交接（MiMo Desktop → ZCode / GLM-5.3-Flash）：见 [HANDOFF.md](../.agent/HANDOFF.md)、[CHANGELOG_GATE_E.md](../.agent/CHANGELOG_GATE_E.md) 与 [PROMPT_FOR_ZCODE_GLM.md](../.agent/handoff/PROMPT_FOR_ZCODE_GLM.md)。Gate F 产出：[CHANGELOG_GATE_F.md](../.agent/CHANGELOG_GATE_F.md)。
 
 ## 核心原则
 
@@ -68,7 +68,7 @@
 - `fixtures/mimo-console-network-observations.redacted.json` — 控制台真实网络观测
 - `scripts/` — codex-appserver-probe / zcode-quota-probe(+oauth) / mimo-console-capture / **mimo-console-harness（用户参与式，待运行）** / screenshot
 
-## 本机证据摘要（2026-09-28）
+## 本机证据摘要
 
 - `%USERPROFILE%\.codex\auth.json` 存在；Codex CLI 装于 `%LOCALAPPDATA%\OpenAI\Codex\bin`
 - `~/.zcode/v2/credentials.json` 存在（其 api-key 条目对 monitor 接口无效——已证伪）

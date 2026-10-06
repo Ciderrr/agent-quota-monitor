@@ -1,6 +1,6 @@
 # Provider Discovery — ZCode / GLM Coding Plan
 
-- 研究日期：2026-09-28（Gate A.1 运行时验证：2026-09-28，本机实测）
+- Gate A.1 运行时验证：本机实测）
 - 证据等级标注：**[官方文档]** / **[官方代码]**（Z.ai 官方开源插件）/ **[运行时已验证]**（本机真实请求/响应）/ **[本机已验证]**（文件级证据）/ **[社区]** / **[UNVERIFIED]**
 - 结论速览：**可监控性：高，但凭证路径反转**。接口本身可用（两区域主机实测可达、信封结构确认）；**ZCode 本机 `credentials.json` 中存储的凭证不能直接用于该接口**（实测 401）→ v1 需用户粘贴控制台签发的 Coding Plan API Key。`limits[]` 字段级结构未观察到 → 未知 type/unit 一律 `PeriodType::Custom(raw)`，不猜测。
 
@@ -8,7 +8,7 @@
 
 ## 1. 官方目前的额度结构
 
-**[官方文档]** https://docs.z.ai/devpack/overview.md 与 https://docs.bigmodel.cn/cn/coding-plan/overview.md（镜像，访问 2026-09-28）
+**[官方文档]** https://docs.z.ai/devpack/overview.md 与 https://docs.bigmodel.cn/cn/coding-plan/overview.md（镜像）
 
 - 套餐 Lite / Pro / Max；双池积分制：5 小时池（Lite 2,000 / Pro 12,000 / Max 28,000，消耗后 5 小时滚动重置）+ 周池（10,000 / 60,000 / 140,000，自订阅日起 7 天）。
 - 积分公式与模型系数文档完整（GLM-5.3：input 6.9 / cached 1.7 / output 24，÷10000）；MCP 调用按次数 × 输出系数 1.2 计入积分池（当前文档口径）。
@@ -118,7 +118,7 @@
 - **备 B（未来调研）**：`zcode.z.ai/api/v1/zcode-plan/billing/*` OAuth 通道——本次实测证明本地 OAuth token 不被 monitor 接口接受，该通道需独立调研（不同主机/不同鉴权头），v1 不依赖。
 - **不采用**：控制台网页解析。
 
-## 附：运行时验证清单状态（2026-09-28）
+## 附：运行时验证清单状态
 
 | 项 | 状态 |
 |---|---|
@@ -135,5 +135,5 @@
 ## 来源
 
 官方：docs.z.ai/devpack/*、docs.bigmodel.cn/cn/coding-plan/*；github.com/zai-org/zai-coding-plugins（query-usage.mjs）；本机 ZCode app.asar 与 ~/.zcode 文件级证据。
-运行时：`fixtures/zcode-quota-limit.redacted.json`、`fixtures/zcode-quota-limit-oauth.redacted.json`（本机实测，2026-09-28）；探测脚本 `scripts/zcode-quota-probe.mjs`、`scripts/zcode-quota-probe-oauth.mjs`。
+运行时：`fixtures/zcode-quota-limit.redacted.json`、`fixtures/zcode-quota-limit-oauth.redacted.json`（本机实测）；探测脚本 `scripts/zcode-quota-probe.mjs`、`scripts/zcode-quota-probe-oauth.mjs`。
 社区：tokenmeter-mac、zai-rs、pi-zai-usage、coding-plan-monitor（接口路径与鉴权佐证）。

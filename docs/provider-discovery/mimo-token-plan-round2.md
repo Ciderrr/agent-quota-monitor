@@ -1,6 +1,6 @@
 # Provider Discovery — MiMo Token Plan Round 2（控制台数据源定位）
 
-- 研究日期：2026-09-28（Portable-first 修订轮）
+（Portable-first 修订轮）
 - 目标：找到 MiMo 官方控制台（platform.xiaomimimo.com）显示 **Monthly Usage %** 的真实数据源——**不允许**只凭 JS 字符串猜接口。
 - 结论：**数据源已在代码层定位 + 控制台真实网络行为已无登录态观测**。剩余缺口仅为登录态响应 fixture（由用户参与式 harness 采集）。
 

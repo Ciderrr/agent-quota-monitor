@@ -1,6 +1,6 @@
 # PROVIDER_INTERFACE.md — Provider 适配器接口规范
 
-> 版本 0.1（Phase 0 / Gate B 评审稿）· 2026-09-28
+> 版本 0.1（Phase 0 / Gate B 评审稿）
 > 原则：**UI 永远不知道任何 Provider 的 URL、凭证位置、字段名**。Provider 之间零依赖。新增 Provider = 新增一个目录 + 注册一行，不改任何既有 Provider 或 UI 分支。
 
 ---

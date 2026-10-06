@@ -1,6 +1,5 @@
 # Provider Discovery — DeepSeek API
 
-- 研究日期：2026-09-28
 - 证据等级标注：**[官方文档]** / **[UNVERIFIED]** / **[未找到 NONE FOUND]**
 - 结论速览：**可监控性：高（五个数据源中最确定）**。存在官方、文档化的余额查询 API；响应 schema 完整验证。v1 垂直切片（Gate D）首选。
 
@@ -26,7 +25,7 @@ DeepSeek 是按量计费 API，没有套餐窗口概念，账户数据 = **余�
 
 ## 2. 官方文档证据
 
-- 余额接口：https://api-docs.deepseek.com/api/get-user-balance 与 https://api-docs.deepseek.com/zh-cn/api/get-user-balance（访问 2026-09-28）
+- 余额接口：https://api-docs.deepseek.com/api/get-user-balance 与 https://api-docs.deepseek.com/zh-cn/api/get-user-balance
 - Base URL 约定：https://api-docs.deepseek.com/（OpenAI 协议 `https://api.deepseek.com`；Anthropic 协议 `https://api.deepseek.com/anthropic`）
 - 错误码表：https://api-docs.deepseek.com/quick_start/error_codes
 - 限流说明：https://api-docs.deepseek.com/quick_start/rate_limit（基于并发的推理限流；余额接口无限流文档）
@@ -118,6 +117,6 @@ DeepSeek 是按量计费 API，没有套餐窗口概念，账户数据 = **余�
 
 ## 来源
 
-- https://api-docs.deepseek.com/api/get-user-balance（EN/ZH，2026-09-28）
+- https://api-docs.deepseek.com/api/get-user-balance（EN/ZH）
 - https://api-docs.deepseek.com/（Base URL）、/quick_start/error_codes、/quick_start/rate_limit、/api/list-models（参考索引）
 - platform.deepseek.com/terms-of-service（客户端渲染未能读取，残留未知）

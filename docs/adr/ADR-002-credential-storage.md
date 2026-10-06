@@ -1,7 +1,6 @@
 # ADR-002 — 凭证存储：Windows Credential Manager（keyring）为主，DPAPI 为备
 
 - 状态：Proposed（Gate B 评审）
-- 日期：2026-09-28
 
 ## 决策
 

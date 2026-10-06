@@ -1,6 +1,6 @@
 # Provider Discovery — MiniMax（v0.3 已实现）
 
-> 研究日期 2026-10-04 · 状态：**已实现**（API Key 路由）
+> 状态：**已实现**（API Key 路由）
 > 端点证据来源：[BurnRate](https://github.com/ziyuan888/BurnRate)（Apache-2.0）+ OpenClaw 中文文档（usage 语义）互证。
 
 ## 1. 端点

@@ -1,6 +1,6 @@
 # REFRESH_STRATEGY.md — 智能刷新策略
 
-> 版本 0.2（Portable-first 修订）· 2026-09-28
+> 版本 0.2（Portable-first 修订）
 > 目标：数据足够新鲜、系统几乎无感、绝不无休止高频请求。所有间隔都叠加 **±10% 抖动**避免固定节拍。
 > **Portable 规则**：基线间隔完全不依赖本地 Agent；活动检测只是优化（PORTABLE_FIRST §6）——`Process detection = Refresh optimization`，绝不是 `Data source requirement`。
 

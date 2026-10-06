@@ -1,7 +1,6 @@
 # ADR-004 — Managed Codex Runtime（Clean PC 上的 Codex 供应与登录）
 
 - 状态：Accepted（Gate B 修订轮）
-- 日期：2026-09-28
 
 ## 背景
 

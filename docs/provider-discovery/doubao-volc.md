@@ -1,6 +1,6 @@
 # Provider Discovery — 豆包 / 火山方舟（Volcengine Ark）
 
-> 研究日期 2026-10-04 · 状态：**部分可行（P2，需火山引擎 AK/SK + V4 签名）**
+> 状态：**部分可行（P2，需火山引擎 AK/SK + V4 签名）**
 > 结论先行：豆包 App 订阅无 API；**火山方舟 Agent Plan 有官方套餐用量查询 API**（[dsh-volcengine-usage 插件](https://dsh.pub) 已封装）；Coding Plan 无公开余量 API；账户余额无公开接口。
 
 ## 1. 事实

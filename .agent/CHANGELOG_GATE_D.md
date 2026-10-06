@@ -1,6 +1,5 @@
 # CHANGELOG — Phase 2 / Gate D（DeepSeek 垂直切片 + Tauri 壳）
 
-- 日期：2026-09-28
 - 范围：真实 Rust 后端 + 浮窗壳 + DeepSeek 端到端；**停止在 Gate D 等待审查**。未进入 Phase 3（Codex Managed Runtime / ZCode 实测 / MiMo fixture）。
 
 ---

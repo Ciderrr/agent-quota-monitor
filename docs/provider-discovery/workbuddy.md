@@ -1,6 +1,6 @@
 # Provider Discovery — WorkBuddy（腾讯办公 AI，Credits 计费）
 
-> 研究日期 2026-09-29 · 状态：**数据源存在性强，端点待 fixture 验证轮**（ADR-006 提案）
+> 状态：**数据源存在性强，端点待 fixture 验证轮**（ADR-006 提案）
 > 结论先行：社区生态已证明「积分余额可程序化查询」；端点未公开，走**用户参与式 harness 抓包**（MiMo 同款）后按 ADR-006 会话路线实装。
 
 ## 1. 产品与计费事实
@@ -27,14 +27,14 @@ DSH 插件生态存在 **`dsh-plugin-workbuddy-gateway`**（[dsh.fish](https://d
 | 读桌面客户端本地凭证直接调接口 | ⚠️ 待验证 | 模式同 ZCode（其凭证已证伪）；WorkBuddy 的本地凭证形态未知。若 harness 显示凭证是长效 token 且接口稳定，可评估「用户粘贴 Key」路线；当前默认不读第三方客户端文件 |
 | 本地网关中转 | ❌ 不采用 | 需要运行/接管 gateway 进程，超出「仅监控」姿态 |
 
-## 3.5 静态分析成果（2026-09-29，官网 JS 包 1.6MB 全量分析）
+## 3.5 静态分析成果（官网 JS 包 1.6MB 全量分析）
 
 - **API 形态确认**：axios 实例 `create({timeout:20000, withCredentials:true})` 且**无 baseURL** → 接口为 **www.workbuddy.cn 同源 + Cookie 会话认证**——与 ADR-005（MiMo）形态完全一致，会话路线适配成本极低。
 - 已确认端点（GET）：`/console/accounts`、`/console/login/type`、`/console/logout`、`/v2/geoblock`；（POST）：`/billing/pay/get-billing-account-inner`、`/billing/pay/get-price`、`/billing/ide/trial`、`/console/user/from`。
 - `/profile/plans-usage` 页面为懒加载分包，积分/用量端点在静态包中未露出 → 由 harness 捕获（`scripts/workbuddy-capture.mjs`，已提交；输出脱敏结构骨架：数值保留、字符串脱敏、零 Cookie/请求头）。
 - 登录疑似经 `LoginIframeDialog`（SSO iframe，关联 CodeBuddy 腾讯云体系）；文案确认「WorkBuddy accounts and credits are shared with CodeBuddy」。
 
-## 3.7 端点确认 ✅（2026-09-29，用户 DevTools 手动抓包）
+## 3.7 端点确认 ✅（用户 DevTools 手动抓包）
 
 用户在已登录的浏览器里用 Network→Fetch/XHR→Copy all URLs 完成捕获（纯 URL，零凭证）。过滤遥测（galileo/beacon/trace 均为腾讯埋点，忽略）后，`/profile/plans-usage` 页面的数据接口全部现形：
 

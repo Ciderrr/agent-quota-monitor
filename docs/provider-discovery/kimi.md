@@ -1,6 +1,6 @@
 # Provider Discovery — Kimi (Moonshot)（v0.3 已实现）
 
-> 研究日期 2026-10-04 · 状态：**已实现**（双路由）
+> 状态：**已实现**（双路由）
 > 端点证据来源：[BurnRate](https://github.com/ziyuan888/BurnRate)（Apache-2.0，Tauri 2 + Rust 同栈，已运行时验证）+ KimiSwitch/dsh 社区工具互证。
 
 ## 1. 双路由（凭据形态自动识别）

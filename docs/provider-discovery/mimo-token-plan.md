@@ -1,6 +1,6 @@
 # Provider Discovery — Xiaomi MiMo Token Plan
 
-- 研究日期：2026-09-28（v1 策略修订：Gate A.1，2026-09-28）
+（v1 策略修订：Gate A.1）
 - 证据等级标注：**[官方文档]** / **[本机已验证]** / **[社区]** / **[UNVERIFIED]** / **[未找到 NONE FOUND]**
 - 结论速览：**可监控性：中低 → v1 定位为"静态套餐信息 + 手动额度"**。不存在官方额度查询 API；按 Gate A.1 决策，**v1 不做任何会话/端点/抓取类自动读取**，默认显示"暂不支持自动额度监控"，提供官方页直达与可选的手动输入（Manual/Estimated）。SPA endpoint 调研移入未来独立的 MiMo Provider Research，不阻塞 v1。
 
@@ -8,7 +8,7 @@
 
 ## 1. 官方目前的额度结构
 
-**[官方文档]** https://mimo.mi.com/static/docs/price/token-plan.md 等（访问 2026-09-28）
+**[官方文档]** https://mimo.mi.com/static/docs/price/token-plan.md 等
 
 - MiMo Token Plan：面向 AI 编程场景的订阅，通过**专属 API Key**（个人 `tp-xxxxx` / 团队 `ttp-xxxxx`，与按量 `sk-xxxxx` 不通用）在 MiMo Desktop、MiMo Code、Claude Code、Codex、Cline 等工具中调用 MiMo 模型。
 - 个人档位（月 Credits 池）：**Lite ¥39/$6 — 4.1B；Standard ¥99/$16 — 11B；Pro ¥329/$50 — 38B；Max ¥659/$100 — 82B**；年付 = 12 个月额度 ×88 折（Lite 49.2B ～ Max 984B）。
@@ -109,5 +109,5 @@ v1 可选配置项：档位选择（Lite/Standard/Pro/Max，决定显示的总�
 
 ## 来源
 
-官方：mimo.mi.com（上列文档 URL）、platform.xiaomimimo.com 控制台公开资源（2026-09-28 访问）。
+官方：mimo.mi.com（上列文档 URL）、platform.xiaomimimo.com 控制台公开资源（访问）。
 本机：`%APPDATA%\Xiaomi MiMo`（Electron 应用安装证据）。

@@ -1,6 +1,6 @@
 # ARCHITECTURE.md — 系统架构
 
-> 版本 0.2（Gate B 修订：Portable-first 双层架构）· 2026-09-28
+> 版本 0.2（Gate B 修订：Portable-first 双层架构）
 > 技术栈结论（ADR-001）：**Tauri 2 + Rust（后端）+ React + TypeScript（前端 WebView2）**
 > 最高原则：**Account-level AI Quota Monitor，Portable-first**（PORTABLE_FIRST.md）——Clean PC 只装 Monitor 即可完成全部 Provider 连接；本机 Agent 检测只是 Local Enhancement Layer。
 

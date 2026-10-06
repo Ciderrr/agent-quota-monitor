@@ -1,6 +1,6 @@
 # Provider Discovery — Qwen / 阿里云百炼（DashScope）
 
-> 研究日期 2026-10-04 · 状态：**部分可行（P2，需阿里云 AccessKey + ACS3 签名）**
+> 状态：**部分可行（P2，需阿里云 AccessKey + ACS3 签名）**
 > 结论先行：余额查询有官方 OpenAPI（[获取账号详情](https://help.aliyun.com)，含余额），但采用 **ACS3-HMAC-SHA256 AccessKey 签名，不支持 Bearer API Key**；通义灵码订阅无公开用量 API。
 
 ## 1. 事实

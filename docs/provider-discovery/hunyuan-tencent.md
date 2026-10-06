@@ -1,6 +1,6 @@
 # Provider Discovery — 腾讯混元
 
-> 研究日期 2026-10-04 · 状态：**部分可行（P2，需腾讯云 SecretId/Key + TC3 签名）**
+> 状态：**部分可行（P2，需腾讯云 SecretId/Key + TC3 签名）**
 > 结论先行：无专门余额 API；可走腾讯云**账单/计费 API（Billing）**获取余额与消费明细，需 TC3-HMAC-SHA256 签名。
 
 ## 1. 事实

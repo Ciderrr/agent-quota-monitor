@@ -1,6 +1,6 @@
 # IMPLEMENTATION_PLAN.md — 实施计划（Gate 制）
 
-> 版本 0.3（Portable-first 修订）· 2026-09-28
+> 版本 0.3（Portable-first 修订）
 > 铁律：**每个 Gate 停下等人工审查。** 用户主要负责 UI 验收：UI 不满意时，禁止以"功能已写完"为由继续开发。
 > 当前状态：Phase 0 完成（Gate A CONDITIONAL PASS → A.1 完成）→ Gate B 修订完成（Portable-first，自审通过）→ **Phase 1 UI Prototype 完成，停止在 Gate C 等待 UI 验收。**
 

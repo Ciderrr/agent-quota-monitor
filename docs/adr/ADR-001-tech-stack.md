@@ -1,7 +1,6 @@
 # ADR-001 — 技术栈选型：Tauri 2 + Rust + React + TypeScript
 
 - 状态：Proposed（Gate B 评审）
-- 日期：2026-09-28
 
 ## 背景
 

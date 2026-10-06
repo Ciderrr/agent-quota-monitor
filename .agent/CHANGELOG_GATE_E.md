@@ -1,6 +1,5 @@
 # CHANGELOG — Phase 3 / Gate E（Provider 实装 + 会话/运行时）
 
-- 日期：2026-09-29  
 - 范围：Codex / MiMo / DeepSeek 打磨 + 托盘/设置/玻璃等 Gate D 反馈；ZCode 待真实 Key。  
 - 状态：**主体完成，待用户 Gate E 终验**。
 

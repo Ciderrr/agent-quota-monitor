@@ -1,6 +1,6 @@
 # Provider Discovery — OpenAI Codex
 
-- 研究日期：2026-09-28（Gate A.1 运行时验证：2026-09-28，本机实测通过）
+- Gate A.1 运行时验证：本机实测通过）
 - 证据等级标注：**[官方文档]** / **[官方代码]**（openai/codex 开源仓库 + 本机 `generate-json-schema` 输出）/ **[运行时已验证]**（本机真实响应）/ **[社区]** / **[UNVERIFIED]**
 - 结论速览：**可监控性：高，主通道已实测打通**。`codex app-server`（JSON-RPC over stdio）的 `account/rateLimits/read` 一次调用即可获得 5h/weekly 窗口、Reset ×N、付费 Credits——**v1 不需要任何 web 端点**。
 
@@ -143,7 +143,7 @@
 
 **高级 fallback / 诊断通道（仅排障用，非 v1 依赖）**：直连只读 `GET https://chatgpt.com/backend-api/wham/usage`（Bearer access_token + `chatgpt-account-id` 头，来自官方 CLI 代码）。触发条件：app-server 通道协议性失效且短期无新 CLI 版本。**v1 不调用** `wham/rate-limit-reset-credits`（availableCount 已足够）；**永不调用** consume。
 
-## 附：运行时验证清单状态（2026-09-28）
+## 附：运行时验证清单状态
 
 | 项 | 状态 |
 |---|---|
@@ -161,4 +161,4 @@
 ## 来源
 
 官方：developers.openai.com/codex/pricing、/codex/auth；openai.com/policies/terms-of-use；github.com/openai/codex（codex-rs backend-client / app-server-protocol）；本机 `codex app-server generate-json-schema`（v2 协议）。
-运行时：`fixtures/codex-rate-limits.redacted.json`（本机实测，2026-09-28）；探测脚本 `scripts/codex-appserver-probe.mjs`。
+运行时：`fixtures/codex-rate-limits.redacted.json`（本机实测）；探测脚本 `scripts/codex-appserver-probe.mjs`。

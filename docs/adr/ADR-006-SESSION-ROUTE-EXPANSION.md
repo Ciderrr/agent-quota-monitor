@@ -1,7 +1,7 @@
 # ADR-006 — 会话路线扩展（Claude / WorkBuddy / OpenCode Go）
 
-> 状态：**WorkBuddy 已 Accepted 并实装**（fixture 2026-09-30，端点/结构实测）；Claude、OpenCode Go 维持 Proposed（用户暂无订阅，搁置）
-> 日期：2026-09-29（2026-09-30 更新）
+> 状态：**WorkBuddy 已 Accepted 并实装**（fixture 实测，端点/结构实测）；Claude、OpenCode Go 维持 Proposed（用户暂无订阅，搁置）
+
 > 关联：ADR-005（MiMo Console Session，本 ADR 的模式母本）、PORTABLE_FIRST §1/§3
 
 ## 背景

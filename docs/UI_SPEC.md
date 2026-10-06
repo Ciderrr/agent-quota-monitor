@@ -1,6 +1,6 @@
 # UI_SPEC.md — 视觉与交互规范
 
-> 版本 0.1（Phase 0）· 2026-09-28
+> 版本 0.1（Phase 0）
 > 一句话定位：**Apple Control Center 的克制 × Apple Widget 的信息密度 × Windows 11 Mica 的材质**。它应当像系统级 Widget，而不是被塞进小窗口的 Web 应用。
 > 验收红线：功能完成但看起来像普通 Electron 管理后台 = 项目未完成（Gate C 一票否决项）。
 

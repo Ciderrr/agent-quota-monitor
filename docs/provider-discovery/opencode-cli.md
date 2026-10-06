@@ -1,6 +1,6 @@
 # Provider Discovery — opencode CLI（v0.3 已实现）
 
-> 研究日期 2026-10-04 · 状态：**已实现（DB 型 Local Enhancement Layer）**
+> 状态：**已实现（DB 型 Local Enhancement Layer）**
 > 注意：本文是 **opencode CLI 本地数据**接入；此前调研的「opencode Go 订阅」（opencode-go.md）是另一回事（订阅路线，仍搁置）。
 
 ## 1. 数据源（本机实测确认）

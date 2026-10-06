@@ -1,6 +1,5 @@
 # Provider Discovery — Xiaomi MiMo Desktop Membership
 
-- 研究日期：2026-09-28
 - 证据等级标注：**[官方文档]** / **[本机已验证]** / **[社区]** / **[UNVERIFIED]** / **[未找到 NONE FOUND]**
 - 结论速览：**可监控性：低（当前无可用数据源）→ v1 标记"暂不支持"**。额度仅存在于桌面应用内部 UI；无官方 API、无公开端点、无社区逆向资料。本机已安装该应用，留有后续运行时取证入口。
 
@@ -8,7 +7,7 @@
 
 ## 1. 官方目前的额度结构
 
-**[官方文档]** https://mimo.mi.com/static/docs/quick-start/faq/token-plan/desktop-guide.md、https://mimo.mi.com/static/docs/tokenplan/integration/mimo-desktop.md、https://mimo.mi.com/static/docs/updates/feature/desktop.md（访问 2026-09-28）
+**[官方文档]** https://mimo.mi.com/static/docs/quick-start/faq/token-plan/desktop-guide.md、https://mimo.mi.com/static/docs/tokenplan/integration/mimo-desktop.md、https://mimo.mi.com/static/docs/updates/feature/desktop.md
 
 - MiMo Desktop：小米首个个人桌面智能体应用（Windows + macOS ARM），V0.1.0 于 2026-09-01 发布，约 2026-09-22 随 MiMo-V2.6 正式版并推出会员订阅。
 - 功能：模型智能路由（`mimo-v2.6-flash` / `pro` / `pro-ultraspeed`）、多会话协作、全模态 I/O、浏览器/电脑控制（海外版）。
@@ -110,10 +109,10 @@
 
 ## 来源
 
-官方：mimo.mi.com（docs/news/updates）、mimo.xiaomimimo.com（pricing 页、desktop/invite/runtime-config.js）、github.com/XiaomiMiMo/MiMo-Code（同族产品本地端点先例），2026-09-28 访问。
+官方：mimo.mi.com（docs/news/updates）、mimo.xiaomimimo.com（pricing 页、desktop/invite/runtime-config.js）、github.com/XiaomiMiMo/MiMo-Code（同族产品本地端点先例）。
 本机：`%APPDATA%\Xiaomi MiMo`（Electron 数据目录，仅列目录名）、`%LOCALAPPDATA%\xiaomi-mimo-desktop-updater`。
 社区（均 UNVERIFIED）：IT之家（beta 时间）、新浪科技转载微博（价格区间）、topic.fit（本地代理传闻）。
 
-## v0.3 复查（2026-10-04）
+## v0.3 复查
 
 多轮检索（同期调研 Grok/豆包/Qwen/混元等）仍未发现 MiMo Desktop 会员额度的可用数据源——**结论维持：可监控性低，标记"暂不支持"**。本机已安装该应用，保留运行时取证入口。

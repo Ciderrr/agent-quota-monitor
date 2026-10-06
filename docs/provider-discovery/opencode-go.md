@@ -1,6 +1,6 @@
 # Provider Discovery — OpenCode Go（订阅用量）
 
-> 研究日期 2026-09-29 · 状态：**数据维度已明确，端点待 fixture 验证轮**（ADR-006 提案）
+> 状态：**数据维度已明确，端点待 fixture 验证轮**（ADR-006 提案）
 > 结论先行：Go 是订阅制（非按量），用量=每模型「5h/周/月」三档美元额度；官方文档**无用量查询 API**，控制台网页可查 → 会话路线（ADR-006）。
 
 ## 1. 产品事实（[opencode.ai/zh/go](https://opencode.ai/zh/go)）

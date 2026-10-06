@@ -1,6 +1,6 @@
 # Provider Discovery — Gemini CLI（Google）
 
-> 研究日期 2026-10-04 · 状态：**可实现（日志型，P2）——本轮未实现（本机无 Gemini CLI 数据可验证）**
+> 状态：**可实现（日志型，P2）——本轮未实现（本机无 Gemini CLI 数据可验证）**
 > 结论先行：Gemini CLI 会话数据在 `~/.gemini/tmp/<project>/chats/session-*.json`，含 usageMetadata（token 计数）；官方上限未公开，与 Claude 同样只能做「消耗量」而非剩余百分比。
 
 ## 1. 事实

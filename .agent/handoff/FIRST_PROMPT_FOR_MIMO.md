@@ -17,7 +17,7 @@
 3. `IMPLEMENTATION_PLAN.md`（Gate 制路线图）
 4. `CHANGELOG_GATE_D.md`（最新进展）与 `docs/README.md`（文档总索引）
 
-## 项目现状（2026-09-28）
+## 项目现状
 
 - 项目：Windows 11 桌面浮窗，监控 Codex / ZCode·GLM / MiMo Token Plan / DeepSeek 的额度；Tauri 2 + Rust + React/TS；计划开源；Local First（无云后端）。
 - 进度：Phase 0（调研/架构）、Phase 1（UI 原型，经我 4 轮验收）、Phase 2（Tauri 壳 + DeepSeek 真实切片，已可运行）完成。

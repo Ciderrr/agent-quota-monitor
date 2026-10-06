@@ -1,6 +1,6 @@
 # Provider Discovery — Grok（Lite / SuperGrok / Heavy）
 
-> 研究日期 2026-10-04 · 状态：**暂不可实现（BLOCKED）**
+> 状态：**暂不可实现（BLOCKED）**
 > 结论先行：SuperGrok 系订阅**无任何公开用量查询 API**，也未发现成熟第三方监控方案。
 
 ## 1. 事实

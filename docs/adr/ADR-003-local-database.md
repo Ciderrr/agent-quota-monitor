@@ -1,7 +1,6 @@
 # ADR-003 — 本地数据库：SQLite（rusqlite bundled）
 
 - 状态：Proposed（Gate B 评审）
-- 日期：2026-09-28
 
 ## 决策
 

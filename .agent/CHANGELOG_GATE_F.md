@@ -1,6 +1,5 @@
 # CHANGELOG — Phase 4 / Gate F（性能 · 安全审计 · 打包 · 可选增强）
 
-- 日期：2026-09-29
 - 执行：ZCode / GLM-5.3-Flash（接替 MiMo Desktop）
 - 范围：安全审计与 CI 断言、release 性能实测、NSIS 打包、活动检测、Codex 登录状态展示、多处配置/文案修复。
 - 状态：**完成，停止在 Gate F 等待用户验收。** GitHub 发布动作仍等用户指令；ZCode 真实 Key 验证轮搁置（用户无 Key）。
@@ -85,7 +84,7 @@ f68b1c3 feat(security): CI grep assertions (npm run audit:sec); bump puppeteer-c
 
 ---
 
-## 8. Gate F 验收反馈修复（2026-09-29 第二轮，真实壳桌面自动化实测）
+## 8. Gate F 验收反馈修复（第二轮，真实壳桌面自动化实测）
 
 用户验收抓出一个**致命回归**和三处 UI 问题；全部修复并用桌面自动化（点击真实窗口）验证。
 
@@ -124,7 +123,7 @@ f68b1c3 feat(security): CI grep assertions (npm run audit:sec); bump puppeteer-c
 
 ---
 
-## 9. Gate F 验收反馈第三轮（2026-09-29）
+## 9. Gate F 验收反馈第三轮
 
 ### 9.1 【严重】周期性闪现 cmd 黑窗
 
@@ -146,7 +145,7 @@ f68b1c3 feat(security): CI grep assertions (npm run audit:sec); bump puppeteer-c
 
 ---
 
-## 10. 体积审计与优化（2026-09-29，用户问「能否更轻」）
+## 10. 体积审计与优化（用户问「能否更轻」）
 
 | 项 | 优化前 | 优化后 |
 |---|---|---|

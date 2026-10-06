@@ -1,7 +1,6 @@
 # ADR-005 — MiMo Token Plan 控制台会话接入（Round 2 结论）
 
 - 状态：Accepted（Route A 选定）；**Authenticated fixture pending**
-- 日期：2026-09-28
 
 ## 背景
 

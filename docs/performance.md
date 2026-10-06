@@ -18,7 +18,7 @@
 | UI 数据流 | Rust 调度器事件推送 → WebView 渲染 | 前端零轮询；仅两个低频 tick（"Xm 前"文案、详情倒计时） |
 | 动画 | 全部 CSS transform/opacity，160–240 ms | prefers-reduced-motion 下降级 |
 
-## Gate F（Phase 4）—— release 构建实测（2026-09-29）
+## Gate F（Phase 4）—— release 构建实测
 
 | 指标 | 实测值 | 目标 | 结论 |
 |---|---|---|---|
