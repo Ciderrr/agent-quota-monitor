@@ -141,6 +141,9 @@ pub fn run() {
                     }
                 }
                 if let Some(line) = line {
+                    // a= 指明账号实例；缺省 main
+                    let account = query_param(&uri_str, "a=").unwrap_or_else(|| crate::types::MAIN_ACCOUNT.into());
+                    let inst_key = crate::types::instance_key("workbuddy", &account);
                     let mut parts = line.split('|');
                     let plan = parts.next().unwrap_or("").trim().to_string();
                     let mut pkgs: Vec<(f64, f64, f64)> = vec![];
@@ -158,11 +161,11 @@ pub fn run() {
                         {
                             let rt = app.state::<SharedRuntime>();
                             let mut r = rt.lock().unwrap();
-                            r.snapshots.insert(scheduler::ik("workbuddy"), snap.clone());
+                            r.snapshots.insert(inst_key, snap.clone());
                         }
                         {
                             let store = app.state::<store::Store>();
-                            store.insert_snapshot("workbuddy", crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
+                            store.insert_snapshot("workbuddy", &account, &serde_json::to_string(&snap).unwrap_or_default());
                         }
                         let _ = app.emit("snapshot-updated", serde_json::json!({ "providerId": "workbuddy" }));
                         handled = true;
@@ -184,7 +187,9 @@ pub fn run() {
             if let Some(p) = payload {
                 let rt = app.state::<SharedRuntime>();
                 let store = app.state::<store::Store>();
-                let _ = commands::store_mimo_payload(app, &rt, &store, &p);
+                // 回传 URL 带 a= 指明账号实例（helper JS 注入时写入）；缺省 main
+                let account = query_param(&uri_str, "a=").unwrap_or_else(|| crate::types::MAIN_ACCOUNT.into());
+                let _ = commands::store_mimo_payload(app, &rt, &store, &p, &account);
                 return Response::builder()
                     .status(200)
                     .header(CONTENT_TYPE, "text/html; charset=utf-8")
@@ -206,10 +211,14 @@ pub fn run() {
                 .unwrap()
         })
         .on_window_event(|window, event| {
-            // 预声明窗（红线）：用户点 X = 隐藏而非销毁，之后可重新打开
+            // 预声明窗（红线）：用户点 X = 隐藏而非销毁，之后可重新打开。
+            // v0.4：动态登录窗 label 以 mimo-login-/wb-login- 为前缀，同受 hide 保护。
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 let label = window.label();
-                if matches!(label, "settings" | "tray-menu" | "mimo-login" | "wb-login") {
+                if matches!(label, "settings" | "tray-menu")
+                    || label.starts_with("mimo-login")
+                    || label.starts_with("wb-login")
+                {
                     api.prevent_close();
                     let _ = window.hide();
                 }
@@ -218,7 +227,10 @@ pub fn run() {
             // 覆盖 tao 因旗标变化重算样式后标记被冲掉的窗口期
             if let tauri::WindowEvent::Focused(true) = event {
                 let label = window.label();
-                if matches!(label, "settings" | "tray-menu" | "mimo-login" | "wb-login") {
+                if matches!(label, "settings" | "tray-menu")
+                    || label.starts_with("mimo-login")
+                    || label.starts_with("wb-login")
+                {
                     crate::instance::exclude_aux_window(window.app_handle(), label);
                 }
             }
@@ -243,7 +255,7 @@ pub fn run() {
             // 存储
             let store = store::Store::open().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
             let settings_json = store.kv_get("settings");
-            let (default_view, notify_enabled, thresholds, refresh_interval_ms, glass_strength, lang, theme) = settings_json
+            let (default_view, notify_enabled, thresholds, refresh_interval_ms, glass_strength, lang, theme, max_visible) = settings_json
                 .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
                 .map(|v| {
                     (
@@ -256,9 +268,12 @@ pub fn run() {
                         v.get("glassStrength").and_then(|x| x.as_f64()).unwrap_or(1.0),
                         v.get("lang").and_then(|x| x.as_str()).unwrap_or("zh").to_string(),
                         v.get("theme").and_then(|x| x.as_str()).unwrap_or("dark").to_string(),
+                        v.get("maxVisible").and_then(|x| x.as_u64()).unwrap_or(scheduler::MAX_VISIBLE as u64)
+                            .clamp(scheduler::MAX_VISIBLE_RANGE.0 as u64, scheduler::MAX_VISIBLE_RANGE.1 as u64)
+                            as usize,
                     )
                 })
-                .unwrap_or_else(|| ("collapsed".into(), true, Thresholds::default(), 0i64, 1.0f64, "zh".into(), "dark".into()));
+                .unwrap_or_else(|| ("collapsed".into(), true, Thresholds::default(), 0i64, 1.0f64, "zh".into(), "dark".into(), scheduler::MAX_VISIBLE));
 
             let mut enabled: HashMap<String, bool> = HashMap::new();
             // v0.3：启停持久化到 kv（此前是易失的，重启即全开）；默认集 = 4 家核心
@@ -302,8 +317,8 @@ pub fn run() {
             app.manage::<SharedRuntime>(std::sync::Arc::new(std::sync::Mutex::new(Runtime {
                 snapshots: boot_snaps,
                 enabled,
-                // v0.4 P1：实例目录空 = 全部 Provider 单 main 账号（添加账号入口随 P3 设置页）
-                accounts: Vec::new(),
+                // v0.4：账号实例目录（kv accounts/list；P1 时代为空即全 main，P2 起持久化多账号）
+                accounts: scheduler::load_accounts(&store),
                 next_due_ms,
                 fail_count: HashMap::new(),
                 default_view,
@@ -311,6 +326,7 @@ pub fn run() {
                 notify_enabled,
                 refresh_interval_ms,
                 glass_strength,
+                max_visible,
                 kv_family,
                 lang,
                 theme,
@@ -382,7 +398,8 @@ pub fn run() {
                 let app2 = app.handle().clone();
                 let _ = app.handle().listen("mimo-payload", move |event| {
                     if let Ok(v) = serde_json::from_str::<serde_json::Value>(event.payload()) {
-                        let _ = commands::store_mimo_payload(&app2, &rt, &store, &v);
+                        // 事件兜底通道无账号上下文，按 main 落（主路径走 aqm://store?a=）
+                        let _ = commands::store_mimo_payload(&app2, &rt, &store, &v, crate::types::MAIN_ACCOUNT);
                     }
                 });
             }
@@ -497,6 +514,10 @@ pub fn run() {
             commands::workbuddy_store_usage,
             commands::workbuddy_close_login,
             commands::workbuddy_store_line,
+            commands::list_accounts,
+            commands::add_account,
+            commands::remove_account,
+            commands::rename_account,
             commands::close_tray_menu,
             commands::close_settings_window,
             commands::get_credential_status,
@@ -524,6 +545,18 @@ fn dirs_data() -> std::path::PathBuf {
     std::env::var("LOCALAPPDATA")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|_| std::path::PathBuf::from("."))
+}
+
+/// URI query 参数提取（匹配 ?key= 或 &key=，避免误伤其他参数名）；percent-decode
+fn query_param(uri: &str, key: &str) -> Option<String> {
+    for pat in [format!("?{key}"), format!("&{key}")] {
+        if let Some(idx) = uri.find(&pat) {
+            let raw = &uri[idx + pat.len()..];
+            let raw = raw.split('&').next().unwrap_or(raw);
+            return percent_decode(raw);
+        }
+    }
+    None
 }
 
 pub(crate) fn percent_decode(s: &str) -> Option<String> {

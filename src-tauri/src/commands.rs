@@ -116,7 +116,8 @@ pub async fn refresh_now(
             let r2 = rt.inner().clone();
             let s2 = store.inner().clone();
             tauri::async_runtime::spawn(async move {
-                let _ = session_read_mimo(a2, r2, s2).await;
+                // P2：main 路径保持（多账号刷新入口随 P3 设置页接入）
+                let _ = session_read_mimo(a2, r2, s2, None).await;
             });
             Ok(())
         }
@@ -125,7 +126,7 @@ pub async fn refresh_now(
             let r2 = rt.inner().clone();
             let s2 = store.inner().clone();
             tauri::async_runtime::spawn(async move {
-                let _ = session_read_workbuddy(a2, r2, s2).await;
+                let _ = session_read_workbuddy(a2, r2, s2, None).await;
             });
             Ok(())
         }
@@ -154,17 +155,18 @@ pub async fn refresh_now(
             let store2 = app.state::<Store>().inner().clone();
             let app2 = app.clone();
             tokio::spawn(async move { crate::scheduler::tick(app2, &rt2, &store2).await; });
-            // 「全部刷新」时：会话型也各触发一次登录窗读取（窗口存在才读；异步不阻塞返回）
+            // 「全部刷新」时：会话型也各触发一次登录窗读取（窗口存在才读；异步不阻塞返回）。
+            // P2：main 账号路径；非 main 账号的后台验证由调度器 tick 按 30min 判据独立执行
             if is_all {
                 let a2 = app.clone();
                 let r2 = rt.inner().clone();
                 let s2 = store.inner().clone();
                 tauri::async_runtime::spawn(async move {
                     if a2.get_webview_window("mimo-login").is_some() {
-                        let _ = session_read_mimo(a2.clone(), r2.clone(), s2.clone()).await;
+                        let _ = session_read_mimo(a2.clone(), r2.clone(), s2.clone(), None).await;
                     }
                     if a2.get_webview_window("wb-login").is_some() {
-                        let _ = session_read_workbuddy(a2.clone(), r2.clone(), s2.clone()).await;
+                        let _ = session_read_workbuddy(a2.clone(), r2.clone(), s2.clone(), None).await;
                     }
                 });
             }
@@ -189,7 +191,9 @@ pub fn set_provider_enabled(
             PROVIDER_IDS.iter().filter(|p| r.enabled.get(**p).copied().unwrap_or(false)).count()
         };
         let already = { rt.lock().unwrap().enabled.get(&id).copied().unwrap_or(false) };
-        if !already && count >= crate::scheduler::MAX_VISIBLE {
+        // 上限用运行时可配值（1–8，默认 4）；count 按「启用中的卡片数」口径
+        let cap = { rt.lock().unwrap().max_visible };
+        if !already && count >= cap {
             return Err(format!("cap:{count}"));
         }
     }
@@ -415,6 +419,7 @@ pub fn get_settings(rt: State<SharedRuntime>) -> serde_json::Value {
         "glassStrength": r.glass_strength,
         "lang": r.lang,
         "theme": r.theme,
+        "maxVisible": r.max_visible,
         "thresholds": r.thresholds,
     })
 }
@@ -433,6 +438,7 @@ pub fn set_settings(
     glass_strength: Option<f64>,
     lang: Option<String>,
     theme: Option<String>,
+    max_visible: Option<usize>,
 ) -> Result<(), String> {
     let snapshot_json;
     {
@@ -440,6 +446,10 @@ pub fn set_settings(
         if let Some(v) = default_view {
             if v != "collapsed" && v != "overview" { return Err("bad defaultView".into()); }
             r.default_view = v;
+        }
+        if let Some(v) = max_visible {
+            // 用户拍板：主界面卡片数 1–8 可配（默认 4）
+            r.max_visible = v.clamp(crate::scheduler::MAX_VISIBLE_RANGE.0, crate::scheduler::MAX_VISIBLE_RANGE.1);
         }
         if let Some(v) = notify_enabled { r.notify_enabled = v; }
         if let Some(v) = warn { r.thresholds.warn = v; }
@@ -467,6 +477,7 @@ pub fn set_settings(
             "glassStrength": r.glass_strength,
             "lang": r.lang,
             "theme": r.theme,
+            "maxVisible": r.max_visible,
             "thresholds": {
                 "warn": r.thresholds.warn,
                 "crit": r.thresholds.crit,
@@ -674,16 +685,18 @@ pub fn set_codex_mode(store: State<'_, Store>, mode: String) -> Result<(), Strin
     Ok(())
 }
 
-/// MiMo：显示预声明登录窗（动态建窗在本机会白屏；配置窗可用）
-#[tauri::command]
-pub fn mimo_open_login(app: AppHandle) -> Result<(), String> {
-    let w = app.get_webview_window("mimo-login").ok_or("no mimo-login window")?;
-    let _ = w.show();
-    let _ = w.set_focus();
-    crate::instance::exclude_aux_window(&app, "mimo-login");
-    // 注入只读 helper（登录页同源 fetch；不注入 IPC）
-    let _ = w.eval(
-        r#"
+/// 会话型动态登录窗的 WebView2 数据目录：按 Provider+账号分目录（Cookie 会话互不覆盖）。
+/// main 走应用默认目录（预声明窗，零回归）；profiles/ 下的目录随「删除账号」语义可清理。
+fn session_profile_dir(provider: &str, account: &str) -> std::path::PathBuf {
+    let base = std::env::var("LOCALAPPDATA")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|_| std::path::PathBuf::from("."));
+    base.join("AgentQuotaMonitor").join("profiles").join(provider).join(account)
+}
+
+/// MiMo 只读 helper：登录页同源 fetch → aqm://store 回传（URL 带账号参数，协议处理器按账号落快照）。
+/// 不注入 IPC；模板占位 __ACC__ 避免在 JS 常量里做花括号转义。
+const MIMO_HELPER_TEMPLATE: &str = r#"
         window.__aqm_mimo_read = async function() {
           const [u, d] = await Promise.all([
             fetch('/api/v1/tokenPlan/usage', { credentials: 'include' }).then(r => r.json()),
@@ -691,25 +704,52 @@ pub fn mimo_open_login(app: AppHandle) -> Result<(), String> {
           ]);
           const payload = { usage: u, detail: d };
           const body = JSON.stringify(payload);
-          // 1) 自定义协议回传（不依赖远程 IPC）
+          // 1) 自定义协议回传（不依赖远程 IPC；a= 指明落哪个账号）
           try {
-            await fetch('aqm://store', { method: 'POST', body, mode: 'no-cors' });
+            await fetch('aqm://store?a=__ACC__', { method: 'POST', body, mode: 'no-cors' });
           } catch (e1) {
-            // 2) IPC 兜底
+            // 2) 导航回传
             try {
-              if (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke) {
-                await window.__TAURI_INTERNALS__.invoke('mimo_store_usage', { payload });
-              }
-            } catch (e2) {}
-            // 3) 导航回传
-            try {
-              location.href = 'aqm://store?d=' + encodeURIComponent(body);
+              location.href = 'aqm://store?d=' + encodeURIComponent(body) + '&a=__ACC__';
             } catch (e3) {}
           }
           return payload;
         };
-        "#,
-    );
+        "#;
+
+fn mimo_helper_js(account: &str) -> String {
+    MIMO_HELPER_TEMPLATE.replace("__ACC__", account)
+}
+
+/// MiMo：显示登录窗。main 复用预声明窗（零回归）；其他账号动态创建并按账号隔离 Profile。
+/// 动态窗不挂远程 capability（历史白屏根因=远程注入冲突），回传只走 aqm:// 通道。
+#[tauri::command]
+pub fn mimo_open_login(app: AppHandle, account: Option<String>) -> Result<(), String> {
+    let account = account.unwrap_or_else(|| crate::types::MAIN_ACCOUNT.into());
+    let label = crate::scheduler::login_window_label("mimo", &account);
+    let w = if let Some(w) = app.get_webview_window(&label) {
+        w
+    } else if account == crate::types::MAIN_ACCOUNT {
+        app.get_webview_window("mimo-login").ok_or("no mimo-login window")?
+    } else {
+        let url: tauri::Url = "https://platform.xiaomimimo.com/#/console/plan-manage"
+            .parse()
+            .map_err(|e| format!("{e}"))?;
+        tauri::webview::WebviewWindowBuilder::new(&app, &label, tauri::WebviewUrl::External(url))
+            .title("MiMo 登录 — Agent Quota Monitor")
+            .inner_size(480.0, 720.0)
+            .min_inner_size(360.0, 480.0)
+            .resizable(true)
+            .center()
+            .data_directory(session_profile_dir("mimo", &account))
+            .build()
+            .map_err(|e| e.to_string())?
+    };
+    let _ = w.show();
+    let _ = w.set_focus();
+    crate::instance::exclude_aux_window(&app, &label);
+    // 注入只读 helper（登录页同源 fetch；不注入 IPC）
+    let _ = w.eval(&mimo_helper_js(&account));
     Ok(())
 }
 
@@ -720,25 +760,30 @@ pub fn mimo_store_usage(
     rt: State<SharedRuntime>,
     store: State<Store>,
     payload: serde_json::Value,
+    account: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    let snap = store_mimo_payload(&app, &rt, &store, &payload);
+    let account = account.unwrap_or_else(|| crate::types::MAIN_ACCOUNT.into());
+    let snap = store_mimo_payload(&app, &rt, &store, &payload, &account);
     Ok(serde_json::to_value(&snap).unwrap_or_default())
 }
 
-/// 关闭 MiMo 登录窗（隐藏即可，配置窗可复用）
+/// 关闭 MiMo 登录窗（隐藏即可，配置窗可复用；动态窗同样隐藏驻留）
 #[tauri::command]
-pub fn mimo_close_login(app: AppHandle) {
-    if let Some(w) = app.get_webview_window("mimo-login") {
+pub fn mimo_close_login(app: AppHandle, account: Option<String>) {
+    let account = account.unwrap_or_else(|| crate::types::MAIN_ACCOUNT.into());
+    let label = crate::scheduler::login_window_label("mimo", &account);
+    if let Some(w) = app.get_webview_window(&label) {
         let _ = w.hide();
     }
 }
 
 /// 会话读取失败 → 如实把快照标为「需要登录」并持久化（仅当当前是 connected/degraded，
 /// 避免覆盖首连流程）；否则重启后又会恢复成误导性的「已连接」旧快照。
-fn mark_session_auth_required(app: &AppHandle, rt: &SharedRuntime, store: &Store, id: &str, detail: &str) {
+fn mark_session_auth_required(app: &AppHandle, rt: &SharedRuntime, store: &Store, id: &str, account: &str, detail: &str) {
+    let inst = crate::types::instance_key(id, account);
     let snap = {
         let mut r = rt.lock().unwrap();
-        match r.snapshots.get_mut(&crate::scheduler::ik(id)) {
+        match r.snapshots.get_mut(&inst) {
             Some(s) if s.connection_state == "connected" || s.connection_state == "degraded" => {
                 s.connection_state = "auth_required".into();
                 s.error_state = Some(ErrorState {
@@ -752,41 +797,43 @@ fn mark_session_auth_required(app: &AppHandle, rt: &SharedRuntime, store: &Store
         }
     };
     if let Some(s) = snap {
-        store.insert_snapshot(id, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&s).unwrap_or_default());
+        store.insert_snapshot(id, account, &serde_json::to_string(&s).unwrap_or_default());
         let _ = app.emit("snapshot-updated", json!({ "providerId": id }));
     }
 }
 
 /// 会话读取防重入 + 记账：刷新连点 / ConnectFlow 轮询 / 后台验证共用一把进程内标志。
-/// 拿不到锁直接返回 busy（调用方继续等下一轮即可），绝不开第二个并行读取循环。
-fn try_begin_session_read(rt: &SharedRuntime, id: &str) -> bool {
+/// 直接收实例键；拿不到锁返回 busy（调用方等下一轮），绝不开第二个并行读取循环。
+fn try_begin_session_read(rt: &SharedRuntime, inst: &str) -> bool {
     let mut r = rt.lock().unwrap();
-    let inst = crate::scheduler::ik(id);
-    if r.read_in_progress.get(&inst).copied().unwrap_or(false) {
+    if r.read_in_progress.get(inst).copied().unwrap_or(false) {
         return false;
     }
-    r.read_in_progress.insert(inst.clone(), true);
-    r.last_session_read_ms.insert(inst, chrono::Utc::now().timestamp_millis());
+    r.read_in_progress.insert(inst.to_string(), true);
+    r.last_session_read_ms.insert(inst.to_string(), chrono::Utc::now().timestamp_millis());
     true
 }
 
-fn end_session_read(rt: &SharedRuntime, id: &str) {
-    rt.lock().unwrap().read_in_progress.insert(crate::scheduler::ik(id), false);
+fn end_session_read(rt: &SharedRuntime, inst: &str) {
+    rt.lock().unwrap().read_in_progress.insert(inst.to_string(), false);
 }
 
-/// MiMo：会话读取核心逻辑（命令包装与「全部刷新」共用）
-pub async fn session_read_mimo(app: AppHandle, rt: SharedRuntime, store: Store) -> Result<serde_json::Value, String> {
-    if !try_begin_session_read(&rt, crate::mimo::ID) {
+/// MiMo：会话读取核心逻辑（命令包装与「全部刷新」共用）；按账号实例读取
+pub async fn session_read_mimo(app: AppHandle, rt: SharedRuntime, store: Store, account: Option<String>) -> Result<serde_json::Value, String> {
+    let account = account.unwrap_or_else(|| crate::types::MAIN_ACCOUNT.into());
+    let inst = crate::types::instance_key(crate::mimo::ID, &account);
+    if !try_begin_session_read(&rt, &inst) {
         return Err("read in progress".into());
     }
-    let res = session_read_mimo_inner(app, rt.clone(), store).await;
-    end_session_read(&rt, crate::mimo::ID);
+    let res = session_read_mimo_inner(app, rt.clone(), store, &account).await;
+    end_session_read(&rt, &inst);
     res
 }
 
-async fn session_read_mimo_inner(app: AppHandle, rt: SharedRuntime, store: Store) -> Result<serde_json::Value, String> {
+async fn session_read_mimo_inner(app: AppHandle, rt: SharedRuntime, store: Store, account: &str) -> Result<serde_json::Value, String> {
+    let label = crate::scheduler::login_window_label(crate::mimo::ID, account);
     let w = app
-        .get_webview_window("mimo-login")
+        .get_webview_window(&label)
         .ok_or("mimo-login window not open")?;
     // 窗口可见 = 用户可能正在登录：绝不导航打断，读取失败也绝不标「登录已失效」
     let visible = w.is_visible().unwrap_or(false);
@@ -802,57 +849,28 @@ async fn session_read_mimo_inner(app: AppHandle, rt: SharedRuntime, store: Store
             tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
         }
     }
-    let js = r#"(async () => {
-      try {
-        const [u, d] = await Promise.all([
-          fetch('/api/v1/tokenPlan/usage', { credentials: 'include' }).then(r => r.json()),
-          fetch('/api/v1/tokenPlan/detail', { credentials: 'include' }).then(r => r.json()),
-        ]);
-        const payload = { usage: u, detail: d };
-        const body = JSON.stringify(payload);
-        document.title = 'AQMOK';
-        try {
-          const t = (window.__TAURI__ && window.__TAURI__.invoke) || (window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke);
-          if (t) { await t('mimo_store_usage', { payload }); }
-        } catch (e) {}
-        try {
-          if (window.__TAURI__ && window.__TAURI__.event && window.__TAURI__.event.emit) {
-            await window.__TAURI__.event.emit('mimo-payload', payload);
-          }
-        } catch (e) {}
-        try {
-          await fetch('aqm://store', { method: 'POST', body, mode: 'no-cors' });
-        } catch (e) {}
-        try {
-          await fetch('http://aqm.localhost/store', { method: 'POST', body, mode: 'no-cors' });
-        } catch (e) {}
-        try {
-          location.href = 'aqm://store?d=' + encodeURIComponent(body);
-        } catch (e) {}
-        return 'ok';
-      } catch (e) {
-        document.title = 'AQMERR:' + String(e).slice(0, 80);
-        return 'fetch_err';
-      }
-    })();"#;
-    let _ = w.eval(js).map_err(|e| e.to_string())?;
+    // 会话读取 JS：回传 URL 带账号参数（a=），协议处理器按账号落快照
+    let js = MIMO_SESSION_JS_TEMPLATE
+        .replace("__ACC__", account);
+    let _ = w.eval(&js).map_err(|e| e.to_string())?;
 
     // 等 mimo_store_usage / 协议回传 / 事件——刷新语义 = 强制真读：
     // 以 fetched_at 变化判定新数据到达（旧快照本就是 connected，不能当作新读成功）
+    let inst = crate::types::instance_key(crate::mimo::ID, account);
     let old_fetched = {
         let r = rt.lock().unwrap();
-        r.snapshots.get(&crate::scheduler::ik(crate::mimo::ID)).map(|s| s.fetched_at.clone())
+        r.snapshots.get(&inst).map(|s| s.fetched_at.clone())
     };
     // IIFE 每 2s 重发（页面加载时序不可控）；AQMERR 出现即刻早退反馈，不再傻等 45s（④）
     let mut last_err = String::new();
     for i in 0..90 {
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         if i % 4 == 1 {
-            let _ = w.eval(js);
+            let _ = w.eval(&js);
         }
         let snap = {
             let r = rt.lock().unwrap();
-            r.snapshots.get(&crate::scheduler::ik(crate::mimo::ID)).cloned()
+            r.snapshots.get(&inst).cloned()
         };
         if let Some(s) = snap {
             if s.connection_state == "connected" && Some(&s.fetched_at) != old_fetched.as_ref() {
@@ -867,15 +885,41 @@ async fn session_read_mimo_inner(app: AppHandle, rt: SharedRuntime, store: Store
     }
     if !last_err.is_empty() {
         if !visible {
-            mark_session_auth_required(&app, &rt, &store, crate::mimo::ID, "MiMo 登录会话已失效，请重新登录");
+            mark_session_auth_required(&app, &rt, &store, crate::mimo::ID, account, "MiMo 登录会话已失效，请重新登录");
         }
         return Err(last_err);
     }
     if !visible {
-        mark_session_auth_required(&app, &rt, &store, crate::mimo::ID, "MiMo 读取超时，请确认已登录后重试");
+        mark_session_auth_required(&app, &rt, &store, crate::mimo::ID, account, "MiMo 读取超时，请确认已登录后重试");
     }
     Err("timeout waiting usage".into())
 }
+
+/// 会话读取注入 JS：同源 fetch → aqm://store 回传（a= 指明账号）；__ACC__ 占位避免花括号转义
+const MIMO_SESSION_JS_TEMPLATE: &str = r#"(async () => {
+      try {
+        const [u, d] = await Promise.all([
+          fetch('/api/v1/tokenPlan/usage', { credentials: 'include' }).then(r => r.json()),
+          fetch('/api/v1/tokenPlan/detail', { credentials: 'include' }).then(r => r.json()),
+        ]);
+        const payload = { usage: u, detail: d };
+        const body = JSON.stringify(payload);
+        document.title = 'AQMOK';
+        try {
+          await fetch('aqm://store?a=__ACC__', { method: 'POST', body, mode: 'no-cors' });
+        } catch (e) {}
+        try {
+          await fetch('http://aqm.localhost/store?a=__ACC__', { method: 'POST', body, mode: 'no-cors' });
+        } catch (e) {}
+        try {
+          location.href = 'aqm://store?d=' + encodeURIComponent(body) + '&a=__ACC__';
+        } catch (e) {}
+        return 'ok';
+      } catch (e) {
+        document.title = 'AQMERR:' + String(e).slice(0, 80);
+        return 'fetch_err';
+      }
+    })();"#;
 
 /// MiMo：IPC 命令包装
 #[tauri::command]
@@ -883,8 +927,9 @@ pub async fn mimo_read_usage(
     app: AppHandle,
     rt: State<'_, SharedRuntime>,
     store: State<'_, Store>,
+    account: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    session_read_mimo(app, rt.inner().clone(), store.inner().clone()).await
+    session_read_mimo(app, rt.inner().clone(), store.inner().clone(), account).await
 }
 
 pub(crate) fn store_mimo_payload(
@@ -892,23 +937,26 @@ pub(crate) fn store_mimo_payload(
     rt: &SharedRuntime,
     store: &Store,
     payload: &serde_json::Value,
+    account: &str,
 ) -> crate::types::Snapshot {
     let usage = payload.get("usage").cloned().unwrap_or(serde_json::Value::Null);
     let detail = payload.get("detail").cloned().unwrap_or(serde_json::Value::Null);
+    let inst = crate::types::instance_key(crate::mimo::ID, account);
     // 防线：会话失效时官方接口可能返回 200 + 错误体（无 data.monthUsage）。
     // 绝不让空数据伪造成「剩余 100%」覆盖真实快照；窗口隐藏才如实标记（可见 = 登录中）。
     if usage.pointer("/data/monthUsage").is_none() {
+        let win_label = crate::scheduler::login_window_label(crate::mimo::ID, account);
         let visible = app
-            .get_webview_window("mimo-login")
+            .get_webview_window(&win_label)
             .map(|w| w.is_visible().unwrap_or(false))
             .unwrap_or(false);
         if visible {
-            let cur = rt.lock().unwrap().snapshots.get(&crate::scheduler::ik(crate::mimo::ID)).cloned();
+            let cur = rt.lock().unwrap().snapshots.get(&inst).cloned();
             return cur.unwrap_or_else(|| crate::mimo::login_required());
         }
         {
             let mut r = rt.lock().unwrap();
-            match r.snapshots.get_mut(&crate::scheduler::ik(crate::mimo::ID)) {
+            match r.snapshots.get_mut(&inst) {
                 Some(s) if s.connection_state == "connected" || s.connection_state == "degraded" => {
                     s.connection_state = "auth_required".into();
                     s.error_state = Some(ErrorState {
@@ -920,18 +968,18 @@ pub(crate) fn store_mimo_payload(
                 _ => {}
             }
         }
-        let snap = rt.lock().unwrap().snapshots.get(&crate::scheduler::ik(crate::mimo::ID)).cloned();
+        let snap = rt.lock().unwrap().snapshots.get(&inst).cloned();
         let snap = snap.unwrap_or_else(|| crate::mimo::login_required());
-        store.insert_snapshot(crate::mimo::ID, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
+        store.insert_snapshot(crate::mimo::ID, account, &serde_json::to_string(&snap).unwrap_or_default());
         let _ = app.emit("snapshot-updated", json!({ "providerId": "mimo" }));
         return snap;
     }
     let snap = crate::mimo::map_usage_detail(&usage, &detail);
     {
         let mut r = rt.lock().unwrap();
-        r.snapshots.insert(crate::scheduler::ik(crate::mimo::ID), snap.clone());
+        r.snapshots.insert(inst.clone(), snap.clone());
     }
-    store.insert_snapshot(crate::mimo::ID, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
+    store.insert_snapshot(crate::mimo::ID, account, &serde_json::to_string(&snap).unwrap_or_default());
     let _ = app.emit("snapshot-updated", json!({ "providerId": "mimo" }));
     snap
 }
@@ -979,21 +1027,37 @@ window.__aqm_wb_read = async function() {
 };
 "#;
 
-/// WorkBuddy：显示预声明登录窗，导航到积分页并注入同源读取 helper（不注入任何凭证逻辑）
+/// WorkBuddy：显示登录窗，导航到积分页并注入同源读取 helper（不注入任何凭证逻辑）。
+/// main 复用预声明窗（零回归）；其他账号动态创建并按账号隔离 Profile（无远程 capability，走 hash 回传）。
 #[tauri::command]
-pub fn workbuddy_open_login(app: AppHandle) -> Result<(), String> {
-    let w = app
-        .get_webview_window("wb-login")
-        .ok_or("no wb-login window")?;
+pub fn workbuddy_open_login(app: AppHandle, account: Option<String>) -> Result<(), String> {
+    let account = account.unwrap_or_else(|| crate::types::MAIN_ACCOUNT.into());
+    let label = crate::scheduler::login_window_label("workbuddy", &account);
+    let w = if let Some(w) = app.get_webview_window(&label) {
+        w
+    } else if account == crate::types::MAIN_ACCOUNT {
+        app.get_webview_window("wb-login").ok_or("no wb-login window")?
+    } else {
+        let url: tauri::Url = WB_PLANS_URL.parse().map_err(|e| format!("{e}"))?;
+        tauri::webview::WebviewWindowBuilder::new(&app, &label, tauri::WebviewUrl::External(url))
+            .title("WorkBuddy 登录 — Agent Quota Monitor")
+            .inner_size(520.0, 760.0)
+            .min_inner_size(400.0, 520.0)
+            .resizable(true)
+            .center()
+            .data_directory(session_profile_dir("workbuddy", &account))
+            .build()
+            .map_err(|e| e.to_string())?
+    };
     let _ = w.show();
     let _ = w.set_focus();
-    crate::instance::exclude_aux_window(&app, "wb-login");
+    crate::instance::exclude_aux_window(&app, &label);
     // 上一次读取会把窗口导航到 aqm://wb 响应页 → 先导航回积分页，等加载完成再注入 helper
     let _ = w.eval(&format!("location.href = '{}';", WB_PLANS_URL));
     let app2 = app.clone();
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_millis(2500)).await;
-        if let Some(w) = app2.get_webview_window("wb-login") {
+        if let Some(w) = app2.get_webview_window(&label) {
             let _ = w.eval(WB_HELPER_JS);
         }
     });
@@ -1007,7 +1071,9 @@ pub fn workbuddy_store_line(
     rt: State<SharedRuntime>,
     store: State<Store>,
     line: String,
+    account: Option<String>,
 ) -> Result<serde_json::Value, String> {
+    let account = account.unwrap_or_else(|| crate::types::MAIN_ACCOUNT.into());
     let mut parts = line.split('|');
     let plan = parts.next().unwrap_or("").trim().to_string();
     let mut pkgs: Vec<(f64, f64, f64)> = vec![];
@@ -1026,9 +1092,9 @@ pub fn workbuddy_store_line(
     let snap = crate::workbuddy::map_title(&plan, &pkgs);
     {
         let mut r = rt.lock().unwrap();
-        r.snapshots.insert(crate::scheduler::ik(crate::workbuddy::ID), snap.clone());
+        r.snapshots.insert(crate::types::instance_key(crate::workbuddy::ID, &account), snap.clone());
     }
-    store.insert_snapshot(crate::workbuddy::ID, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
+    store.insert_snapshot(crate::workbuddy::ID, &account, &serde_json::to_string(&snap).unwrap_or_default());
     let _ = app.emit("snapshot-updated", json!({ "providerId": "workbuddy" }));
     Ok(serde_json::to_value(&snap).unwrap_or_default())
 }
@@ -1039,12 +1105,15 @@ pub async fn session_read_workbuddy(
     app: AppHandle,
     rt: SharedRuntime,
     store: Store,
+    account: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    if !try_begin_session_read(&rt, crate::workbuddy::ID) {
+    let account = account.unwrap_or_else(|| crate::types::MAIN_ACCOUNT.into());
+    let inst = crate::types::instance_key(crate::workbuddy::ID, &account);
+    if !try_begin_session_read(&rt, &inst) {
         return Err("read in progress".into());
     }
-    let res = session_read_workbuddy_inner(app, rt.clone(), store).await;
-    end_session_read(&rt, crate::workbuddy::ID);
+    let res = session_read_workbuddy_inner(app, rt.clone(), store, &account).await;
+    end_session_read(&rt, &inst);
     res
 }
 
@@ -1052,9 +1121,11 @@ async fn session_read_workbuddy_inner(
     app: AppHandle,
     rt: SharedRuntime,
     store: Store,
+    account: &str,
 ) -> Result<serde_json::Value, String> {
+    let label = crate::scheduler::login_window_label(crate::workbuddy::ID, account);
     let w = app
-        .get_webview_window("wb-login")
+        .get_webview_window(&label)
         .ok_or("wb-login window not open")?;
     // ②2 修复（用户实测：登录被无限刷新打断）：窗口可见 = 用户正在登录，
     // **绝不导航**——helper 在 workbuddy.cn 任意页面都能同源 fetch billing 接口；
@@ -1064,9 +1135,10 @@ async fn session_read_workbuddy_inner(
     if !visible {
         let _ = w.eval(&format!("location.href = '{}';", WB_PLANS_URL));
     }
+    let inst = crate::types::instance_key(crate::workbuddy::ID, account);
     let old_fetched = {
         let r = rt.lock().unwrap();
-        r.snapshots.get(&crate::scheduler::ik(crate::workbuddy::ID)).map(|s| s.fetched_at.clone())
+        r.snapshots.get(&inst).map(|s| s.fetched_at.clone())
     };
     for i in 0..60 {
         if i >= 2 && i % 4 == 2 {
@@ -1080,7 +1152,7 @@ async fn session_read_workbuddy_inner(
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         let snap = {
             let r = rt.lock().unwrap();
-            r.snapshots.get(&crate::scheduler::ik(crate::workbuddy::ID)).cloned()
+            r.snapshots.get(&inst).cloned()
         };
         if let Some(s) = snap {
             if s.connection_state == "connected" && Some(&s.fetched_at) != old_fetched.as_ref() {
@@ -1096,9 +1168,9 @@ async fn session_read_workbuddy_inner(
                         if let Some(snap) = parse_wb_line(&line) {
                             {
                                 let mut r = rt.lock().unwrap();
-                                r.snapshots.insert(crate::scheduler::ik(crate::workbuddy::ID), snap.clone());
+                                r.snapshots.insert(inst.clone(), snap.clone());
                             }
-                            store.insert_snapshot(crate::workbuddy::ID, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
+                            store.insert_snapshot(crate::workbuddy::ID, account, &serde_json::to_string(&snap).unwrap_or_default());
                             let _ = app.emit("snapshot-updated", json!({ "providerId": "workbuddy" }));
                             let _ = w.eval("location.hash = '';"); // 用后即清，防下次误读旧值
                             return Ok(serde_json::to_value(&snap).unwrap_or_default());
@@ -1109,7 +1181,7 @@ async fn session_read_workbuddy_inner(
                         let _ = w.eval("location.hash = '';");
                         // 可见 = 登录中：失败是正常过程，不打扰、不标记（②2）
                         if !visible {
-                            mark_session_auth_required(&app, &rt, &store, crate::workbuddy::ID, "WorkBuddy 登录会话已失效，请重新登录");
+                            mark_session_auth_required(&app, &rt, &store, crate::workbuddy::ID, account, "WorkBuddy 登录会话已失效，请重新登录");
                         }
                         return Err(format!("wb read: {msg}"));
                     }
@@ -1118,7 +1190,7 @@ async fn session_read_workbuddy_inner(
         }
     }
     if !visible {
-        mark_session_auth_required(&app, &rt, &store, crate::workbuddy::ID, "WorkBuddy 读取超时，请确认已登录后重试");
+        mark_session_auth_required(&app, &rt, &store, crate::workbuddy::ID, account, "WorkBuddy 读取超时，请确认已登录后重试");
     }
     Err("timeout waiting usage".into())
 }
@@ -1129,8 +1201,9 @@ pub async fn workbuddy_read_usage(
     app: AppHandle,
     rt: State<'_, SharedRuntime>,
     store: State<'_, Store>,
+    account: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    session_read_workbuddy(app, rt.inner().clone(), store.inner().clone()).await
+    session_read_workbuddy(app, rt.inner().clone(), store.inner().clone(), account).await
 }
 
 /// 解析 title/hash 通道的短行：套餐名|总量;剩余;已用|...
@@ -1161,15 +1234,19 @@ pub fn workbuddy_store_usage(
     rt: State<SharedRuntime>,
     store: State<Store>,
     payload: serde_json::Value,
+    account: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    let snap = store_workbuddy_payload(&app, &rt, &store, &payload);
+    let account = account.unwrap_or_else(|| crate::types::MAIN_ACCOUNT.into());
+    let snap = store_workbuddy_payload(&app, &rt, &store, &payload, &account);
     Ok(serde_json::to_value(&snap).unwrap_or_default())
 }
 
-/// 关闭 WorkBuddy 登录窗（隐藏即可，配置窗可复用）
+/// 关闭 WorkBuddy 登录窗（隐藏即可，配置窗可复用；动态窗同样隐藏驻留）
 #[tauri::command]
-pub fn workbuddy_close_login(app: AppHandle) {
-    if let Some(w) = app.get_webview_window("wb-login") {
+pub fn workbuddy_close_login(app: AppHandle, account: Option<String>) {
+    let account = account.unwrap_or_else(|| crate::types::MAIN_ACCOUNT.into());
+    let label = crate::scheduler::login_window_label("workbuddy", &account);
+    if let Some(w) = app.get_webview_window(&label) {
         let _ = w.hide();
     }
 }
@@ -1179,6 +1256,7 @@ pub(crate) fn store_workbuddy_payload(
     rt: &SharedRuntime,
     store: &Store,
     payload: &serde_json::Value,
+    account: &str,
 ) -> crate::types::Snapshot {
     let summary = payload.get("summary").cloned().unwrap_or(serde_json::Value::Null);
     let paid = payload.get("paid").cloned().unwrap_or(serde_json::Value::Null);
@@ -1193,11 +1271,74 @@ pub(crate) fn store_workbuddy_payload(
     let snap = crate::workbuddy::map_summary(&summary, &accounts_val);
     {
         let mut r = rt.lock().unwrap();
-        r.snapshots.insert(crate::scheduler::ik(crate::workbuddy::ID), snap.clone());
+        r.snapshots.insert(crate::types::instance_key(crate::workbuddy::ID, account), snap.clone());
     }
-    store.insert_snapshot(crate::workbuddy::ID, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
+    store.insert_snapshot(crate::workbuddy::ID, account, &serde_json::to_string(&snap).unwrap_or_default());
     let _ = app.emit("snapshot-updated", json!({ "providerId": "workbuddy" }));
     snap
+}
+
+// ===== v0.4 多账号：账号实例管理（P2 后端就绪；P3 设置页接入 UI）=====
+
+/// 列出某 Provider 的全部账号实例（main 恒在首位，保证单账号路径恒可用）
+#[tauri::command]
+pub fn list_accounts(rt: State<SharedRuntime>, provider_id: String) -> Vec<crate::types::AccountInstance> {
+    let r = rt.lock().unwrap();
+    let mut out = vec![crate::types::AccountInstance {
+        provider_id: provider_id.clone(),
+        account_id: crate::types::MAIN_ACCOUNT.into(),
+        label: None,
+        enabled: true,
+    }];
+    out.extend(r.accounts.iter().filter(|a| a.provider_id == provider_id).cloned());
+    out
+}
+
+/// 添加账号实例：生成随机 account_id 并持久化（上限：每 Provider 3 / 全局 12）
+#[tauri::command]
+pub fn add_account(
+    app: AppHandle,
+    rt: State<SharedRuntime>,
+    store: State<Store>,
+    provider_id: String,
+    label: Option<String>,
+) -> Result<crate::types::AccountInstance, String> {
+    let inst = crate::scheduler::add_account(&rt, &store, &provider_id, label)?;
+    let _ = app.emit("accounts-changed", json!({ "providerId": provider_id }));
+    Ok(inst)
+}
+
+/// 删除账号实例：清凭据/历史/运行态（用户拍板：历史一并清除），销毁其动态登录窗
+#[tauri::command]
+pub fn remove_account(
+    app: AppHandle,
+    rt: State<SharedRuntime>,
+    store: State<Store>,
+    provider_id: String,
+    account_id: String,
+) -> Result<(), String> {
+    crate::scheduler::remove_account(&rt, &store, &provider_id, &account_id)?;
+    let label = crate::scheduler::login_window_label(&provider_id, &account_id);
+    if let Some(w) = app.get_webview_window(&label) {
+        let _ = w.destroy();
+    }
+    let _ = app.emit("accounts-changed", json!({ "providerId": provider_id }));
+    Ok(())
+}
+
+/// 重命名账号实例（仅显示名，不影响身份/历史/凭据）
+#[tauri::command]
+pub fn rename_account(
+    app: AppHandle,
+    rt: State<SharedRuntime>,
+    store: State<Store>,
+    provider_id: String,
+    account_id: String,
+    label: String,
+) -> Result<(), String> {
+    crate::scheduler::rename_account(&rt, &store, &provider_id, &account_id, &label)?;
+    let _ = app.emit("accounts-changed", json!({ "providerId": provider_id }));
+    Ok(())
 }
 
 /// 检查更新（v0.2.2）：返回 None = 已是最新；Some = 可用版本信息。

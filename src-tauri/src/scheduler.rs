@@ -15,8 +15,10 @@ pub const PROVIDER_IDS: [&str; 9] = [
 /// 默认启用集（v0.3 起）：最多同时显示 4 家（用户红线）。新装用户默认这 4 家；
 /// 后续启停经设置页持久化到 kv。新扩容 Provider（claude/opencode/kimi/minimax）默认关闭。
 pub const DEFAULT_ENABLED: [&str; 4] = ["codex", "mimo", "deepseek", "workbuddy"];
-/// 主界面 Provider 显示上限（用户红线，Rust 侧强制 + 前端提示双保险）
+/// 主界面卡片显示上限的默认值（用户红线 v0.3；v0.4 起用户可配 1–8，kv settings.maxVisible）
 pub const MAX_VISIBLE: usize = 4;
+/// 卡片上限的合法范围（用户拍板：1–8 张可配）
+pub const MAX_VISIBLE_RANGE: (usize, usize) = (1, 8);
 
 pub struct Runtime {
     pub snapshots: HashMap<String, Snapshot>,
@@ -33,6 +35,8 @@ pub struct Runtime {
     pub refresh_interval_ms: i64,
     /// 玻璃不透明度 0.3–1.0
     pub glass_strength: f64,
+    /// 主界面卡片显示上限（1–8，用户可配；默认 4 = MAX_VISIBLE）
+    pub max_visible: usize,
     /// ZCode 区域族（zai | bigmodel），由连接时记忆
     pub kv_family: Option<String>,
     /// 每 Provider 最近一次完成抓取的时间（ms）；活动边沿补刷的 30s 判据
@@ -99,6 +103,138 @@ pub fn account_of_key(key: &str) -> String {
     key.split_once('/')
         .map(|(_, a)| a.to_string())
         .unwrap_or_else(|| crate::types::MAIN_ACCOUNT.to_string())
+}
+
+/// 会话型登录窗 label：main 复用预声明窗（红线：动态建窗仅用于非 main 账号），
+/// 其他账号运行动态创建 `{provider}-login-{account}`。
+pub fn login_window_label(provider_id: &str, account: &str) -> String {
+    match (provider_id, account == crate::types::MAIN_ACCOUNT) {
+        ("mimo", true) => "mimo-login".into(),
+        ("workbuddy", true) => "wb-login".into(),
+        _ => format!("{provider_id}-login-{account}"),
+    }
+}
+
+/// 会话型 Provider 的登录窗预声明 label（main 专用）
+pub fn predesigned_login_label(provider_id: &str) -> &'static str {
+    match provider_id {
+        "mimo" => "mimo-login",
+        "workbuddy" => "wb-login",
+        _ => "",
+    }
+}
+
+// ===== 账号实例目录（持久化 kv accounts/list；v0.4 P2）=====
+
+pub const MAX_ACCOUNTS_PER_PROVIDER: usize = 3;
+pub const MAX_ACCOUNTS_TOTAL: usize = 12;
+
+pub fn load_accounts(store: &crate::store::Store) -> Vec<crate::types::AccountInstance> {
+    store
+        .kv_get("accounts/list")
+        .and_then(|v| serde_json::from_str(&v).ok())
+        .unwrap_or_default()
+}
+
+fn save_accounts(store: &crate::store::Store, accounts: &[crate::types::AccountInstance]) {
+    store.kv_set("accounts/list", &serde_json::to_string(accounts).unwrap_or_default());
+}
+
+/// 生成 8 位 hex 账号 ID（单机低频场景，时间戳异或进程号足够抗碰撞）
+fn new_account_id() -> String {
+    let n = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0)
+        ^ (std::process::id() as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+    format!("{n:08x}")
+}
+
+pub fn add_account(
+    rt: &SharedRuntime,
+    store: &crate::store::Store,
+    provider_id: &str,
+    label: Option<String>,
+) -> Result<crate::types::AccountInstance, String> {
+    if !PROVIDER_IDS.contains(&provider_id) {
+        return Err("unknown provider".into());
+    }
+    let mut r = rt.lock().unwrap();
+    let per = r.accounts.iter().filter(|a| a.provider_id == provider_id).count();
+    if per + 1 > MAX_ACCOUNTS_PER_PROVIDER {
+        return Err(format!("cap_provider:{MAX_ACCOUNTS_PER_PROVIDER}"));
+    }
+    if r.accounts.len() + 1 > MAX_ACCOUNTS_TOTAL {
+        return Err(format!("cap_total:{MAX_ACCOUNTS_TOTAL}"));
+    }
+    let inst = crate::types::AccountInstance {
+        provider_id: provider_id.into(),
+        account_id: new_account_id(),
+        label,
+        enabled: true,
+    };
+    r.accounts.push(inst.clone());
+    let all = r.accounts.clone();
+    drop(r);
+    save_accounts(store, &all);
+    Ok(inst)
+}
+
+pub fn remove_account(
+    rt: &SharedRuntime,
+    store: &crate::store::Store,
+    provider_id: &str,
+    account_id: &str,
+) -> Result<(), String> {
+    if account_id == crate::types::MAIN_ACCOUNT {
+        return Err("cannot remove main".into());
+    }
+    let removed = {
+        let mut r = rt.lock().unwrap();
+        let before = r.accounts.len();
+        r.accounts.retain(|a| !(a.provider_id == provider_id && a.account_id == account_id));
+        if r.accounts.len() == before {
+            return Err("no such account".into());
+        }
+        let all = r.accounts.clone();
+        // 清运行态（快照/节奏/防重入），登录窗由调用方隐藏销毁
+        let key = crate::types::instance_key(provider_id, account_id);
+        r.snapshots.remove(&key);
+        r.next_due_ms.remove(&key);
+        r.fail_count.remove(&key);
+        r.last_fetch_ms.remove(&key);
+        r.read_in_progress.remove(&key);
+        r.last_session_read_ms.remove(&key);
+        all
+    };
+    save_accounts(store, &removed);
+    // 历史一并清除（用户拍板：隐私优先）
+    store.purge_account_history(provider_id, account_id);
+    // 非会话型还可能挂凭据（API Key 型多账号预铺），有则删
+    for slot in ["api-key", "coding-plan-key"] {
+        let _ = crate::credentials::delete_credential(&format!("{provider_id}/{account_id}/{slot}"));
+    }
+    Ok(())
+}
+
+pub fn rename_account(
+    rt: &SharedRuntime,
+    store: &crate::store::Store,
+    provider_id: &str,
+    account_id: &str,
+    label: &str,
+) -> Result<(), String> {
+    let mut r = rt.lock().unwrap();
+    let inst = r
+        .accounts
+        .iter_mut()
+        .find(|a| a.provider_id == provider_id && a.account_id == account_id)
+        .ok_or("no such account")?;
+    inst.label = if label.is_empty() { None } else { Some(label.to_string()) };
+    let all = r.accounts.clone();
+    drop(r);
+    save_accounts(store, &all);
+    Ok(())
 }
 
 fn default_interval_ms(id: &str) -> i64 {
@@ -225,34 +361,45 @@ pub async fn tick(app: tauri::AppHandle, rt: &SharedRuntime, store: &crate::stor
     // 窗口可见（用户正在登录）时绝不触发，杜绝打断登录流程（②2）。
     // last_session_read_ms 由 session_read 本体在开始时记账（含手动/ConnectFlow 触发）。
     for id in ["mimo", "workbuddy"] {
-        {
+        // 每 Provider 遍历全部账号实例（main + 目录实例）：各自独立 30min 判据与防重入
+        let insts: Vec<String> = {
             let r = rt.lock().unwrap();
             if !r.enabled.get(id).copied().unwrap_or(true) { continue; }
-            let inst = ik(id);
-            if r.read_in_progress.get(&inst).copied().unwrap_or(false) { continue; }
-            let last = r.last_session_read_ms.get(&inst).copied().unwrap_or(0);
-            if chrono::Utc::now().timestamp_millis() - last < 30 * 60 * 1000 { continue; }
-        }
-        let label = if id == "mimo" { "mimo-login" } else { "wb-login" };
-        let win_hidden = app
-            .get_webview_window(label)
-            .map(|w| !w.is_visible().unwrap_or(true))
-            .unwrap_or(false);
-        if !win_hidden { continue; }
-        let a2 = app.clone();
-        let r2 = rt.clone();
-        let s2 = store.clone();
-        let id2 = id.to_string();
-        tauri::async_runtime::spawn(async move {
-            let res = if id2 == "mimo" {
-                crate::commands::session_read_mimo(a2.clone(), r2.clone(), s2.clone()).await
-            } else {
-                crate::commands::session_read_workbuddy(a2.clone(), r2.clone(), s2.clone()).await
-            };
-            if let Err(e) = res {
-                eprintln!("[aqm] session verify {id2}: {e}");
+            let mut v = vec![ik(id)];
+            for a in r.accounts.iter().filter(|a| a.provider_id == *id && a.enabled) {
+                v.push(a.key());
             }
-        });
+            v
+        };
+        for inst in insts {
+            {
+                let r = rt.lock().unwrap();
+                if r.read_in_progress.get(&inst).copied().unwrap_or(false) { continue; }
+                let last = r.last_session_read_ms.get(&inst).copied().unwrap_or(0);
+                if chrono::Utc::now().timestamp_millis() - last < 30 * 60 * 1000 { continue; }
+            }
+            let label = login_window_label(id, &account_of_key(&inst));
+            let win_hidden = app
+                .get_webview_window(&label)
+                .map(|w| !w.is_visible().unwrap_or(true))
+                .unwrap_or(false);
+            if !win_hidden { continue; }
+            let a2 = app.clone();
+            let r2 = rt.clone();
+            let s2 = store.clone();
+            let id2 = id.to_string();
+            let acc2 = account_of_key(&inst);
+            tauri::async_runtime::spawn(async move {
+                let res = if id2 == "mimo" {
+                    crate::commands::session_read_mimo(a2.clone(), r2.clone(), s2.clone(), Some(acc2)).await
+                } else {
+                    crate::commands::session_read_workbuddy(a2.clone(), r2.clone(), s2.clone(), Some(acc2)).await
+                };
+                if let Err(e) = res {
+                    eprintln!("[aqm] session verify {inst}: {e}");
+                }
+            });
+        }
     }
 
     // v0.2 洞察：燃烧预测 + 余额趋势 + 切换建议——每 tick 重算，变化才广播
