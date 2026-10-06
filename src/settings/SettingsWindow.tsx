@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getVersion } from "@tauri-apps/api/app";
 import { bridge, isTauri } from "../bridge";
-import { PROVIDERS } from "../types/provider";
+import { PROVIDERS, type AccountInstanceDto } from "../types/provider";
 import { useI18n, type Lang } from "../i18n";
 import { engine } from "../mock/engine";
 import { IconClose } from "../ui/icons";
@@ -32,7 +32,7 @@ export function SettingsWindow({
   const [section, setSection] = useState<Section>(initialSection);
   const [prefs, setPrefs] = useState({
     launch: false, mode: "desktop", refresh: "smart",
-    notify: true, warn: 0, crit: 0, balance: 0, glass: 100,
+    notify: true, warn: 0, crit: 0, balance: 0, glass: 100, maxVisible: 4,
   });
   const set = <K extends keyof typeof prefs>(k: K, v: (typeof prefs)[K]) => setPrefs((p) => ({ ...p, [k]: v }));
   const [testState, setTestState] = useState<Record<string, "running" | "ok" | undefined>>({});
@@ -41,6 +41,8 @@ export function SettingsWindow({
   const [creds, setCreds] = useState<Record<string, boolean>>({});
   const [codexSess, setCodexSess] = useState<boolean | null>(null);
   const [codexLogin, setCodexLogin] = useState<{ localAuth?: boolean; isolatedAuth?: boolean; mode?: string } | null>(null);
+  const [accountsMap, setAccountsMap] = useState<Record<string, AccountInstanceDto[]>>({});
+  const [accountsHint, setAccountsHint] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState("");
   const [capHint, setCapHint] = useState(false);
   // 更新状态机（v0.2.2）：idle → checking → latest | available → downloading | failed
@@ -117,7 +119,21 @@ export function SettingsWindow({
     refreshStatus();
     // 启停状态来自 Rust（v0.3 起持久化）
     invoke<Record<string, boolean>>("list_providers_enabled").then(setEnabledMap).catch(() => {});
-    invoke<{ defaultView?: string; notifyEnabled?: boolean; refreshIntervalMs?: number; glassStrength?: number; thresholds?: { warn?: number; crit?: number; balance?: number } }>("get_settings").then((s) => {
+    // v0.4：账号实例目录（每 Provider 的多账号列表）
+    const refreshAccounts = () => {
+      for (const p of PROVIDERS) {
+        if (p.connectionMethods.every((m) => m === "local_logs")) continue;
+        invoke<AccountInstanceDto[]>("list_accounts", { providerId: p.id })
+          .then((list) => setAccountsMap((m) => ({ ...m, [p.id]: list })))
+          .catch(() => {});
+      }
+    };
+    refreshAccounts();
+    const onAcc = () => refreshAccounts();
+    window.addEventListener("focus", onAcc);
+    let unAcc: (() => void) | undefined;
+    listen("accounts-changed", onAcc).then((f) => { unAcc = f; }).catch(() => {});
+    invoke<{ defaultView?: string; notifyEnabled?: boolean; refreshIntervalMs?: number; glassStrength?: number; maxVisible?: number; thresholds?: { warn?: number; crit?: number; balance?: number } }>("get_settings").then((s) => {
       if (s?.defaultView === "collapsed" || s?.defaultView === "overview") setDefaultView(s.defaultView);
       const ms = s?.refreshIntervalMs ?? 0;
       const refresh = ms === 0 ? "smart" : ms === 60_000 ? "1" : ms === 300_000 ? "5" : ms === 600_000 ? "10" : "smart";
@@ -129,14 +145,41 @@ export function SettingsWindow({
         crit: s?.thresholds?.crit ?? p.crit,
         balance: s?.thresholds?.balance ?? p.balance,
         glass: Math.round((s?.glassStrength ?? 1) * 100),
+        maxVisible: s?.maxVisible ?? p.maxVisible,
       }));
       if (typeof s?.glassStrength === "number") {
         document.documentElement.style.setProperty("--glass-strength", String(s.glassStrength));
       }
     }).catch(() => {});
     window.addEventListener("focus", refreshStatus);
-    return () => window.removeEventListener("focus", refreshStatus);
+    return () => {
+      window.removeEventListener("focus", refreshStatus);
+      window.removeEventListener("focus", onAcc);
+      unAcc?.();
+    };
   }, []);
+
+  // v0.4：添加/删除账号实例（后端 setProvider 上限：每 Provider 3 / 全局 12）
+  const addAccount = (pid: string) => {
+    invoke<AccountInstanceDto>("add_account", { providerId: pid })
+      .then((inst) => {
+        const mainRow: AccountInstanceDto = { providerId: pid, accountId: "main", enabled: true };
+        setAccountsMap((m) => ({
+          ...m,
+          [pid]: [...(m[pid] ?? [mainRow]), inst],
+        }));
+        // 直接进入该账号的连接流（复用现有 ConnectFlow，账号化透传）
+        window.dispatchEvent(new CustomEvent("proto-connect", { detail: `${pid}/${inst.accountId}` }));
+      })
+      .catch((e) => {
+        setAccountsHint(String(e));
+        setTimeout(() => setAccountsHint(null), 4000);
+      });
+  };
+  const removeAccount = (pid: string, accId: string) => {
+    if (!window.confirm(t("accounts.remove_confirm"))) return;
+    invoke("remove_account", { providerId: pid, accountId: accId }).catch(() => {});
+  };
 
   // 连接/清除后自动刷新状态
   useEffect(() => {
@@ -332,6 +375,21 @@ export function SettingsWindow({
                     <span className="num" style={{ width: 40, textAlign: "right", color: "var(--fg-2)" }}>{prefs.glass}%</span>
                   </div>
                 </Row>
+                <Row label={t("settings.max_visible")} desc={t("settings.max_visible_desc")}>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                      <button
+                        key={n}
+                        className="mini-btn"
+                        style={prefs.maxVisible === n ? { borderColor: "var(--fg)", color: "var(--fg)" } : undefined}
+                        onClick={() => { set("maxVisible", n); void notifySettings({ maxVisible: n }); }}
+                        aria-pressed={prefs.maxVisible === n}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </Row>
                 <Row label={t("settings.window_mode")}>
                   <Seg value={prefs.mode} onChange={changeWindowMode}
                     options={[["desktop", t("settings.mode_desktop")], ["ontop", t("settings.mode_ontop")]]} />
@@ -418,6 +476,24 @@ export function SettingsWindow({
                           </span>
                         )}
                       </div>
+                      {/* v0.4 账号管理：main 即本行状态；以下列出非 main 账号，可连可删 */}
+                      {isTauri && !isLocalLogs && (accountsMap[p.id]?.filter((a) => a.accountId !== "main").length ?? 0) > 0 && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          {accountsMap[p.id]!.filter((a) => a.accountId !== "main").map((a) => (
+                            <div key={a.accountId} className="set-row" style={{ justifyContent: "flex-start", gap: 8, paddingLeft: 10 }}>
+                              <span className="desc" style={{ marginTop: 0 }}>{a.label || `#${a.accountId.slice(0, 4)}`}</span>
+                              <button className="mini-btn" onClick={() => window.dispatchEvent(new CustomEvent("proto-connect", { detail: `${p.id}/${a.accountId}` }))}>{t("action.connect")}</button>
+                              <button className="mini-btn" style={{ color: "var(--crit)" }} onClick={() => removeAccount(p.id, a.accountId)}>{t("accounts.remove")}</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {isTauri && !isLocalLogs && (
+                        <div className="set-row" style={{ justifyContent: "flex-start" }}>
+                          <button className="mini-btn" onClick={() => addAccount(p.id)}>{t("accounts.add")}</button>
+                          <span className="desc" style={{ marginTop: 0 }}>{accountsHint ?? t("accounts.add_desc")}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

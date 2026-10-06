@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ProviderSnapshot, Insights } from "../types/provider";
-import { metaOf } from "../types/provider";
+import { metaOf, instIdOf, accountIndexOf } from "../types/provider";
 import { useI18n } from "../i18n";
 import { primaryValue, primarySub, levelOf, pickPrimaryBucket, bucketLabel, timeUntil } from "../ui/format";
 import { GlassSurface } from "../ui/GlassSurface";
@@ -91,12 +91,13 @@ export function CollapsedWidget({
       <div className="rows" role="list" onContextMenu={openMenu}>
         {snapshots.map((s) => {
           const meta = metaOf(s.providerId);
+          const accIdx = accountIndexOf(snapshots, s);
           const { text, percent, isMoney } = primaryValue(s);
           let sub = primarySub(s, t, lang);
-          // v0.2：代表桶存在燃烧预测且 2 小时内耗尽 → 副标题改提示「预计 X 后耗尽」
+          // v0.2：代表桶存在燃烧预测且 2 小时内耗尽 → 副标题改提示「预计 X 后耗尽」（按账号匹配）
           const primary = pickPrimaryBucket(s.quotaBuckets);
           const pred = primary
-            ? insights?.predictions?.[s.providerId]?.find((p) => p.bucketId === primary.id)
+            ? insights?.predictions?.[s.providerId]?.find((p) => p.bucketId === primary.id && (p.accountId ?? "main") === (s.accountId ?? "main"))
             : undefined;
           if (pred) {
             const minsLeft = (new Date(pred.exhaustAt).getTime() - Date.now()) / 60000;
@@ -110,17 +111,17 @@ export function CollapsedWidget({
           const stale = s.stale;
           return (
             <div
-              key={s.providerId}
+              key={instIdOf(s)}
               role="listitem"
               tabIndex={0}
               className={`row focusable ${stale ? "stale" : ""}`}
               aria-label={`${t(meta.nameKey as any)} ${showErrText ? "" : text}`}
-              onClick={() => onOpen(s.providerId)}
-              onKeyDown={(e) => e.key === "Enter" && onOpen(s.providerId)}
+              onClick={() => onOpen(instIdOf(s))}
+              onKeyDown={(e) => e.key === "Enter" && onOpen(instIdOf(s))}
             >
               <div className="tile">{meta.shortName[0]}</div>
               <div className="row-main">
-                <div className="row-name">{meta.shortName}</div>
+                <div className="row-name">{meta.shortName}{accIdx > 0 ? <span className="row-sub-inline"> · {t("accounts.n", { n: accIdx })}</span> : null}</div>
                 <div className="row-sub">{sub}</div>
               </div>
               <div className="row-value">

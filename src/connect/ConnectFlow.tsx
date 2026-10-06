@@ -22,8 +22,13 @@ function useAutoClose(onClose: () => void, active: boolean) {
   return { left, label: t("connect.auto_close", { s: Math.max(0, left) }) };
 }
 
-export function ConnectFlow({ providerId, onClose }: { providerId: string; onClose: () => void }) {
+export function ConnectFlow({ providerId: rawId, onClose }: { providerId: string; onClose: () => void }) {
   const { t } = useI18n();
+  // v0.4：providerId 可为复合实例键 "{provider}/{account}"（设置页添加账号时传入）；缺省 main
+  const { providerId, accountId } = (() => {
+    const [p, a] = rawId.split("/");
+    return { providerId: p, accountId: a };
+  })();
   const meta = metaOf(providerId);
   return (
     <GlassSurface className="glass-strong sim-window" data-window role="dialog" aria-label={t("connect.title", { name: t(meta.nameKey as any) })}>
@@ -36,16 +41,16 @@ export function ConnectFlow({ providerId, onClose }: { providerId: string; onClo
           <div className="connect-hero">
             <div className="tile">{meta.shortName[0]}</div>
             <div>
-              <div className="connect-hero-name">{t(meta.nameKey as any)}</div>
+              <div className="connect-hero-name">{t(meta.nameKey as any)}{accountId && accountId !== "main" ? ` · ${accountId.slice(0, 4)}` : ""}</div>
               <div className="connect-hero-sub">
                 {meta.connectionMethods.map((m) => t(("conn." + m) as any)).join(" · ")}
               </div>
             </div>
           </div>
           {providerId === "codex" && <CodexFlow onClose={onClose} />}
-          {(providerId === "zcode" || providerId === "deepseek" || providerId === "kimi" || providerId === "minimax") && <KeyFlow providerId={providerId} onClose={onClose} />}
-          {providerId === "mimo" && <MimoFlow onClose={onClose} />}
-          {providerId === "workbuddy" && <WorkbuddyFlow onClose={onClose} />}
+          {(providerId === "zcode" || providerId === "deepseek" || providerId === "kimi" || providerId === "minimax") && <KeyFlow providerId={providerId} accountId={accountId} onClose={onClose} />}
+          {providerId === "mimo" && <MimoFlow accountId={accountId} onClose={onClose} />}
+          {providerId === "workbuddy" && <WorkbuddyFlow accountId={accountId} onClose={onClose} />}
         </div>
       </div>
     </GlassSurface>
@@ -253,7 +258,7 @@ function CodexFlow({ onClose }: { onClose: () => void }) {
   );
 }
 
-function KeyFlow({ providerId, onClose }: { providerId: string; onClose: () => void }) {
+function KeyFlow({ providerId, accountId, onClose }: { providerId: string; accountId?: string; onClose: () => void }) {
   const { t } = useI18n();
   const [value, setValue] = useState("");
   const [stage, setStage] = useState<Stage>("idle");
@@ -266,7 +271,7 @@ function KeyFlow({ providerId, onClose }: { providerId: string; onClose: () => v
     setStage("testing");
     try {
       // 真实连通性：写入凭据管理器并抓一次官方接口
-      const res = await bridge.connectWithCredential(providerId, value);
+      const res = await bridge.connectWithCredential(providerId, value, accountId);
       if (res && res.ok) {
         setStage("test-ok");
       } else {
@@ -278,7 +283,7 @@ function KeyFlow({ providerId, onClose }: { providerId: string; onClose: () => v
   };
   const save = async () => {
     try {
-      await bridge.connectWithCredential(providerId, value);
+      await bridge.connectWithCredential(providerId, value, accountId);
     } catch { /* ignore */ }
     setValue("");
     setStage("saved");
@@ -321,7 +326,7 @@ function KeyFlow({ providerId, onClose }: { providerId: string; onClose: () => v
   );
 }
 
-function MimoFlow({ onClose }: { onClose: () => void }) {
+function MimoFlow({ accountId, onClose }: { accountId?: string; onClose: () => void }) {
   const { t } = useI18n();
   const meta = metaOf("mimo");
   const [stage, setStage] = useState<"idle" | "reading" | "got">("idle");
@@ -337,20 +342,20 @@ function MimoFlow({ onClose }: { onClose: () => void }) {
 
   const openLogin = async () => {
     try {
-      await invoke("mimo_open_login");
+      await invoke("mimo_open_login", { account: accountId ?? null });
       setMsg(t("connect.mimo.wait_login"));
       setStage("reading");
       let tries = 0;
       const timer = setInterval(async () => {
         tries += 1;
         try {
-          await invoke("mimo_read_usage");
+          await invoke("mimo_read_usage", { account: accountId ?? null });
           const snap = await bridge.getSnapshot("mimo");
           if (snap && snap.connectionState === "connected") {
             clearInterval(timer);
             setStage("got");
             setMsg("");
-            invoke("mimo_close_login").catch(() => {});
+            invoke("mimo_close_login", { account: accountId ?? null }).catch(() => {});
             return;
           }
         } catch {
@@ -421,7 +426,7 @@ function MimoFlow({ onClose }: { onClose: () => void }) {
   );
 }
 
-function WorkbuddyFlow({ onClose }: { onClose: () => void }) {
+function WorkbuddyFlow({ accountId, onClose }: { accountId?: string; onClose: () => void }) {
   const { t } = useI18n();
   const meta = metaOf("workbuddy");
   const [stage, setStage] = useState<"idle" | "reading" | "got">("idle");
@@ -437,20 +442,20 @@ function WorkbuddyFlow({ onClose }: { onClose: () => void }) {
 
   const openLogin = async () => {
     try {
-      await invoke("workbuddy_open_login");
+      await invoke("workbuddy_open_login", { account: accountId ?? null });
       setMsg(t("connect.wb.wait_login"));
       setStage("reading");
       let tries = 0;
       const timer = setInterval(async () => {
         tries += 1;
         try {
-          await invoke("workbuddy_read_usage");
+          await invoke("workbuddy_read_usage", { account: accountId ?? null });
           const snap = await bridge.getSnapshot("workbuddy");
           if (snap && snap.connectionState === "connected") {
             clearInterval(timer);
             setStage("got");
             setMsg("");
-            invoke("workbuddy_close_login").catch(() => {});
+            invoke("workbuddy_close_login", { account: accountId ?? null }).catch(() => {});
             return;
           }
         } catch {

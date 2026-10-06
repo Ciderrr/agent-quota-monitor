@@ -138,8 +138,13 @@ pub async fn refresh_now(
                 let mut r = rt.lock().unwrap();
                 match id {
                     Some(id) => {
-                        for k in crate::scheduler::instance_keys_in(&r, &id) {
-                            r.next_due_ms.insert(k, due_now);
+                        if id.contains('/') {
+                            // 复合实例键（详情页刷新单个账号）
+                            r.next_due_ms.insert(id, due_now);
+                        } else {
+                            for k in crate::scheduler::instance_keys_in(&r, &id) {
+                                r.next_due_ms.insert(k, due_now);
+                            }
                         }
                     }
                     None => {
@@ -243,18 +248,22 @@ pub fn set_provider_enabled(
 }
 
 /// 凭证经 IPC 直通凭据管理器后即弃；随即做一次连通性抓取。
-/// ZCode 记忆区域族（key 族决定主机）。
+/// ZCode 记忆区域族（key 族决定主机）。account 缺省 main（旧槽位）；非 main 写嵌套槽。
 #[tauri::command]
 pub async fn connect_with_credential(
     app: AppHandle, rt: State<'_, SharedRuntime>, store: State<'_, Store>,
-    id: String, secret: String, family: Option<String>,
+    id: String, secret: String, family: Option<String>, account: Option<String>,
 ) -> Result<serde_json::Value, String> {
+    let account = account.unwrap_or_else(|| crate::types::MAIN_ACCOUNT.into());
+    let slot = |base: &str| -> String {
+        if account == crate::types::MAIN_ACCOUNT { base.to_string() } else { format!("{id}/{account}/{base}") }
+    };
     match id.as_str() {
         "deepseek" => {
-            credentials::set_credential("deepseek/api-key", &secret)?;
+            credentials::set_credential(&slot("api-key"), &secret)?;
         }
         "zcode" => {
-            credentials::set_credential("zcode/coding-plan-key", &secret)?;
+            credentials::set_credential(&slot("coding-plan-key"), &secret)?;
             if let Some(f) = family {
                 rt.lock().unwrap().kv_family = Some(f.clone());
                 store.kv_set("zcode/family", &f);
@@ -262,37 +271,38 @@ pub async fn connect_with_credential(
         }
         // v0.3 扩容：Kimi（API Key 或 kimi.com 控制台 token，二者形态自动识别）
         "kimi" => {
-            credentials::set_credential("kimi/api-key", &secret)?;
+            credentials::set_credential(&slot("api-key"), &secret)?;
         }
         "minimax" => {
-            credentials::set_credential("minimax/api-key", &secret)?;
+            credentials::set_credential(&slot("api-key"), &secret)?;
         }
         _ => return Err(format!("provider {id} does not support credential connection in Gate D")),
     }
-    let snap = crate::scheduler::fetch_provider(&crate::scheduler::ik(&id), &rt, &store).await;
+    let inst = crate::types::instance_key(&id, &account);
+    let snap = crate::scheduler::fetch_provider(&inst, &rt, &store).await;
     let ok = snap.error_state.is_none();
     if ok {
-        // 换新账号：清掉旧历史，避免混入（P1：连接固定 main 账号）
-        store.purge_account_history(&id, crate::types::MAIN_ACCOUNT);
-        rt.lock().unwrap().snapshots.insert(crate::scheduler::ik(&id), snap.clone());
-        store.insert_snapshot(&id, crate::types::MAIN_ACCOUNT, &serde_json::to_string(&snap).unwrap_or_default());
+        // 换新账号：清掉旧历史，避免混入（用户拍板：删除/替换语义清历史）
+        store.purge_account_history(&id, &account);
+        rt.lock().unwrap().snapshots.insert(inst.clone(), snap.clone());
+        store.insert_snapshot(&id, &account, &serde_json::to_string(&snap).unwrap_or_default());
         if id == "deepseek" {
             if let Some(b) = snap.balances.first() {
                 let fmt = |v: Option<f64>| v.map(|x| format!("{x:.2}"));
-                store.insert_balance_sample("deepseek", crate::types::MAIN_ACCOUNT, &b.currency, fmt(b.total), fmt(b.granted), fmt(b.topped_up), b.available_flag);
+                store.insert_balance_sample("deepseek", &account, &b.currency, fmt(b.total), fmt(b.granted), fmt(b.topped_up), b.available_flag);
             }
         }
         let _ = app.emit("snapshot-updated", json!({ "providerId": id }));
     } else {
         // 测试失败：回滚，不留下错误 Key
         match id.as_str() {
-            "deepseek" => { let _ = credentials::delete_credential("deepseek/api-key"); }
-            "zcode" => { let _ = credentials::delete_credential("zcode/coding-plan-key"); }
-            "kimi" => { let _ = credentials::delete_credential("kimi/api-key"); }
-            "minimax" => { let _ = credentials::delete_credential("minimax/api-key"); }
+            "deepseek" => { let _ = credentials::delete_credential(&slot("api-key")); }
+            "zcode" => { let _ = credentials::delete_credential(&slot("coding-plan-key")); }
+            "kimi" => { let _ = credentials::delete_credential(&slot("api-key")); }
+            "minimax" => { let _ = credentials::delete_credential(&slot("api-key")); }
             _ => {}
         }
-        rt.lock().unwrap().snapshots.insert(crate::scheduler::ik(&id), crate::scheduler::not_connected_snapshot(&id));
+        rt.lock().unwrap().snapshots.insert(inst, crate::scheduler::not_connected_snapshot(&id));
     }
     Ok(json!({ "ok": ok, "message": snap.error_state.map(|e| e.code) }))
 }
@@ -380,11 +390,16 @@ pub fn get_history(store: State<Store>) -> Vec<HistorySeries> {
 /// 额度百分比历史（真实数据：来自 snapshots 表历次抓取存档）。
 /// 每个桶一条序列；降采样 ≤40 点，首点末点保留。
 #[tauri::command]
-pub fn get_quota_history(store: State<Store>, provider_id: String, days: Option<i64>) -> Vec<HistorySeries> {
+pub fn get_quota_history(store: State<Store>, provider_id: String, days: Option<i64>, account: Option<String>) -> Vec<HistorySeries> {
     let days = days.unwrap_or(7).clamp(1, 30);
+    // 账号缺省 main；复合实例键 "{provider}/{account}" 也接受
+    let (provider_id, account) = match provider_id.split_once('/') {
+        Some((p, a)) => (p.to_string(), a.to_string()),
+        None => (provider_id.clone(), account.unwrap_or_else(|| crate::types::MAIN_ACCOUNT.into())),
+    };
     let mut out = vec![];
-    // P1：详情页尚无账号维度，取 main 账号序列（多账号 Tab 随 P3 设置页一起上）
-    for (_bucket_id, title, pts) in store.quota_series(&provider_id, crate::types::MAIN_ACCOUNT, days) {
+    // P3：详情页按账号取序列（多账号 Tab 数据源）
+    for (_bucket_id, title, pts) in store.quota_series(&provider_id, &account, days) {
         if pts.is_empty() { continue; }
         let n = pts.len();
         let step = (((n as f64) / 40.0).ceil().max(1.0)) as usize;

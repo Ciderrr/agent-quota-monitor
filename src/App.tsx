@@ -251,6 +251,19 @@ function MainShell() {
     return () => { un?.(); unIns?.(); };
   }, []);
   const snapshots = isTauri ? tauriSnaps : engine.getSnapshots();
+  // v0.4：主界面卡片数上限（1–8，默认 4）——用户可配，随 settings-changed 跨窗同步
+  const [maxVisible, setMaxVisible] = useState(4);
+  useEffect(() => {
+    if (!isTauri) return;
+    invoke<{ maxVisible?: number }>("get_settings").then((s) => {
+      if (typeof s?.maxVisible === "number") setMaxVisible(Math.max(1, Math.min(8, s.maxVisible)));
+    }).catch(() => {});
+    let un: (() => void) | undefined;
+    listen<{ maxVisible?: number }>("settings-changed", (e) => {
+      if (typeof e.payload?.maxVisible === "number") setMaxVisible(Math.max(1, Math.min(8, e.payload.maxVisible)));
+    }).then((f) => { un = f; }).catch(() => {});
+    return () => un?.();
+  }, []);
   const lastUpdated = snapshots.reduce(
     (a, s) => (a > s.fetchedAt ? a : s.fetchedAt),
     new Date(0).toISOString(),
@@ -459,6 +472,10 @@ function MainShell() {
   }, []);
 
   const visibleSnaps = snapshots.filter((s) => !hiddenIds.has(s.providerId));
+  // v0.4：卡片数超过用户设置上限时截断显示（Rust cap 已在启停时拦截，此处兜底
+  // 拦「调小上限后已超限」的存量状态），并提示到设置调整
+  const shownSnaps = visibleSnaps.slice(0, maxVisible);
+  const overflowCount = Math.max(0, visibleSnaps.length - maxVisible);
 
   // 真实壳：设置/托盘菜单是独立预声明窗口，主窗只负责浮窗
   return (
@@ -480,7 +497,7 @@ function MainShell() {
         >
             {view === "collapsed" ? (
               <CollapsedWidget
-                snapshots={visibleSnaps}
+                snapshots={shownSnaps}
                 insights={isTauri ? insights : null}
                 onOpen={openProvider}
                 onOpenSettings={openSettings}
@@ -488,10 +505,11 @@ function MainShell() {
               />
             ) : (
               <ExpandedWidget
-                snapshots={visibleSnaps}
+                snapshots={shownSnaps}
                 insights={isTauri ? insights : null}
                 view={view === "detail" ? "detail" : view === "history" ? "history" : "overview"}
                 detailId={detailId}
+                overflowNotice={overflowCount > 0 ? overflowCount : undefined}
                 onBack={homeView}
                 onBackHistory={() => setView(historyFrom)}
                 onOpenDetail={openProvider}

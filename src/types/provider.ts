@@ -194,6 +194,32 @@ export function metaOf(id: string): ProviderMeta {
   return PROVIDERS.find((p) => p.id === id)!;
 }
 
+// ===== v0.4 多账号：前端实例复合 id（"{providerId}/{accountId}"，缺省 main）=====
+
+export function instIdOf(s: Pick<ProviderSnapshot, "providerId" | "accountId">): string {
+  return `${s.providerId}/${s.accountId ?? "main"}`;
+}
+
+export function parseInstId(id: string): { providerId: string; accountId: string } {
+  const [providerId, accountId] = id.split("/");
+  return { providerId, accountId: accountId ?? "main" };
+}
+
+/** 同 Provider 内的账号序号（main=1）；返回 0 = 单账号，不显示账号标识 */
+export function accountIndexOf(snaps: ProviderSnapshot[], s: ProviderSnapshot): number {
+  const siblings = snaps.filter((x) => x.providerId === s.providerId);
+  if (siblings.length <= 1) return 0;
+  return siblings.findIndex((x) => instIdOf(x) === instIdOf(s)) + 1;
+}
+
+/** 账号实例目录条目（list_accounts IPC 的行） */
+export interface AccountInstanceDto {
+  providerId: string;
+  accountId: string;
+  label?: string;
+  enabled: boolean;
+}
+
 // ===== v0.2 洞察（燃烧预测 + 余额趋势 + 切换建议）—— Rust predict.rs 的 TS 镜像 =====
 
 export type Confidence = "high" | "medium" | "low";

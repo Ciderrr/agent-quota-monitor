@@ -19,8 +19,8 @@ export const TauriBridge: PlatformBridge = {
   async getHistory() {
     return invoke<HistorySeries[]>("get_history");
   },
-  async getQuotaHistory(providerId, days) {
-    return invoke<HistorySeries[]>("get_quota_history", { providerId, days });
+  async getQuotaHistory(providerId, days, account) {
+    return invoke<HistorySeries[]>("get_quota_history", { providerId, days, account: account ?? null });
   },
   async refreshNow(id) {
     await invoke("refresh_now", { id: id ?? null });
@@ -28,11 +28,12 @@ export const TauriBridge: PlatformBridge = {
   async setProviderEnabled(id, on) {
     await invoke("set_provider_enabled", { id, enabled: on });
   },
-  async connectWithCredential(id, secret) {
+  async connectWithCredential(id, secret, account) {
     return invoke<{ ok: boolean; message?: string }>("connect_with_credential", {
       id,
       secret,
       family: id === "zcode" ? "zai" : null,
+      account: account ?? null,
     });
   },
   async markConnected() {

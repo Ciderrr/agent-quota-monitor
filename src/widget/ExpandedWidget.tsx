@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ProviderSnapshot, QuotaBucket, Insights, BucketPrediction } from "../types/provider";
-import { metaOf } from "../types/provider";
+import { metaOf, instIdOf, parseInstId, accountIndexOf } from "../types/provider";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { isTauri } from "../bridge";
@@ -13,14 +13,40 @@ import { IconBack, IconRefresh, IconExternal, IconHistory, IconCollapse, IconSet
 import { GlassSurface } from "../ui/GlassSurface";
 import { HistoryPanel } from "./HistoryPanel";
 
+/** 物理回滚到顶部：带加速度与阻尼的弹簧动画（用户拍板的超上限反馈方式） */
+function useSpringScrollTop(trigger: unknown) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || el.scrollTop <= 0) return;
+    let raf = 0;
+    let v = 0;
+    const step = () => {
+      const x = el.scrollTop;
+      v = v * 0.78 - x * 0.16; // 阻尼 + 回复力：越远拉得越快，接近顶部减速缓冲
+      el.scrollTop = x + v;
+      if (el.scrollTop > 0.5 || Math.abs(v) > 0.5) {
+        raf = requestAnimationFrame(step);
+      } else {
+        el.scrollTop = 0;
+      }
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [trigger]);
+  return ref;
+}
+
 export function ExpandedWidget({
-  snapshots, insights, view, detailId, onBack, onBackHistory, onOpenDetail, onShowHistory, onRefresh, lastAllUpdated, onCollapse, showCollapse, onOpenSettings,
+  snapshots, insights, view, detailId, overflowNotice, onBack, onBackHistory, onOpenDetail, onShowHistory, onRefresh, lastAllUpdated, onCollapse, showCollapse, onOpenSettings,
 }: {
   snapshots: ProviderSnapshot[];
   /** v0.2 洞察（真实壳）；浏览器原型为 null → 预测/建议不显示 */
   insights: Insights | null;
   view: "overview" | "detail" | "history";
   detailId?: string;
+  /** v0.4：卡片数超出用户上限的数量（>0 时显示顶部提示并弹性回滚到顶部） */
+  overflowNotice?: number;
   onBack: () => void;
   onBackHistory: () => void;
   onOpenDetail: (id: string) => void;
@@ -32,6 +58,17 @@ export function ExpandedWidget({
   onOpenSettings: (section?: string) => void;
 }) {
   const { t, lang } = useI18n();
+  const bodyRef = useSpringScrollTop(overflowNotice ?? 0);
+
+  const overflowBanner = overflowNotice && overflowNotice > 0 ? (
+    <div className="status-banner" style={{ marginBottom: 8 }}>
+      <span className="dot err" style={{ marginTop: 4 }} />
+      <div>
+        <b>{t("accounts.cap_title", { n: overflowNotice })}</b>
+        <div className="desc">{t("accounts.cap_desc")}</div>
+      </div>
+    </div>
+  ) : null;
 
   if (view === "history") {
     return (
@@ -49,24 +86,27 @@ export function ExpandedWidget({
   }
 
   if (view === "detail" && detailId) {
-    const s = snapshots.find((x) => x.providerId === detailId);
+    // detailId 为复合实例键 "{provider}/{account}"（缺省 main）
+    const { providerId: pid, accountId } = parseInstId(detailId);
+    const s = snapshots.find((x) => x.providerId === pid && (x.accountId ?? "main") === accountId);
     if (!s) return null;
-    const meta = metaOf(detailId);
+    const meta = metaOf(pid);
     // 会话型 Provider 登录失效时隐藏「打开官方用量页」：浏览器打开官方页
     // 并不会让本程序重新登录，只会误导用户（用户实测反馈）
-    const sessionLogin = detailId === "mimo" || detailId === "workbuddy";
+    const sessionLogin = pid === "mimo" || pid === "workbuddy";
     const hasErr = s.connectionState === "not_connected" || s.connectionState === "auth_required" || s.connectionState === "disconnected";
     const showOpenUsage = !(sessionLogin && hasErr);
+    const accIdx = accountIndexOf(snapshots, s);
     return (
       <GlassSurface className="glass expanded" data-widget>
         <div className="x-head">
           <button className="x-back" aria-label={t("nav.all_providers")} title={t("nav.all_providers")} onClick={onBack}><IconBack /></button>
-          <div className="x-title">{t(meta.nameKey as any)}</div>
+          <div className="x-title">{t(meta.nameKey as any)}{accIdx > 0 ? ` · ${t("accounts.n", { n: accIdx })}` : ""}</div>
           <button className="icon-btn" aria-label={t("tray.settings")} title={t("tray.settings")} onClick={() => onOpenSettings()}><IconSettings /></button>
           <button className="icon-btn" aria-label={t("action.history")} onClick={onShowHistory}><IconHistory /></button>
         </div>
         <div className="x-body">
-          <ProviderDetail snapshot={s} insights={insights} onOpenSettings={onOpenSettings} />
+          <ProviderDetail snapshot={s} insights={insights} multiAccount={accIdx > 0} onOpenSettings={onOpenSettings} />
         </div>
         <Foot
           meta={updatedAgo(s.fetchedAt, lang)}
@@ -101,15 +141,16 @@ export function ExpandedWidget({
         <div className="x-title">{t("app.name")}</div>
         <button className="icon-btn" aria-label={t("tray.settings")} title={t("tray.settings")} onClick={() => onOpenSettings()}><IconSettings /></button>
       </div>
-      <div className="x-body">
+      <div className="x-body" ref={bodyRef}>
+        {overflowBanner}
         {snapshots.map((s) => (
-          <OverviewBlock key={s.providerId} s={s} onOpen={() => onOpenDetail(s.providerId)} />
+          <OverviewBlock key={instIdOf(s)} s={s} snaps={snapshots} onOpen={() => onOpenDetail(instIdOf(s))} />
         ))}
       </div>
       <Foot meta={updatedAgo(lastAllUpdated, lang)} onRefresh={() => onRefresh()} refreshLabel={t("action.refresh")} />
       </GlassSurface>
     );
-  }
+}
 
 function Foot({ meta, onRefresh, refreshLabel, extra, refreshNode }: {
   meta: string; onRefresh: () => void; refreshLabel: string; extra?: React.ReactNode; refreshNode?: React.ReactNode;
@@ -144,7 +185,9 @@ function DetailRefreshButton({ providerId, onRefresh, label }: {
     if (isTauri) {
       listen<{ providerId?: string }>("snapshot-updated", (e) => {
         const pid = e.payload?.providerId;
-        if (!pid || pid === providerId || pid === "all") finish();
+        // providerId 传的是复合实例键 "{provider}/{account}"，事件里是裸 provider id
+        const bare = providerId.split("/")[0];
+        if (!pid || pid === bare || pid === "all") finish();
       }).then((f) => { un = f; }).catch(() => {});
     }
     const to = setTimeout(finish, 45000);
@@ -161,9 +204,10 @@ function DetailRefreshButton({ providerId, onRefresh, label }: {
   );
 }
 
-function OverviewBlock({ s, onOpen }: { s: ProviderSnapshot; onOpen: () => void }) {
+function OverviewBlock({ s, snaps, onOpen }: { s: ProviderSnapshot; snaps: ProviderSnapshot[]; onOpen: () => void }) {
   const { t, lang } = useI18n();
   const meta = metaOf(s.providerId);
+  const accIdx = accountIndexOf(snaps, s);
   const buckets = s.quotaBuckets.filter((b) => b.remainingPercent !== undefined);
   const primary = pickPrimaryBucket(buckets);
   // ②3：存在聚合桶（积分包合计）时，列表行只展示合计；逐包明细留给详情页
@@ -180,7 +224,7 @@ function OverviewBlock({ s, onOpen }: { s: ProviderSnapshot; onOpen: () => void 
       aria-label={t(meta.nameKey as any)}
     >
       <div className="pb-head">
-        <span className="pb-name">{t(meta.nameKey as any)}</span>
+        <span className="pb-name">{t(meta.nameKey as any)}{accIdx > 0 ? <span className="pb-plan"> · {t("accounts.n", { n: accIdx })}</span> : null}</span>
         {s.planLabel && <span className="pb-plan">{s.planLabel}</span>}
       </div>
       {hasErr ? (
@@ -262,27 +306,31 @@ function OverviewBlock({ s, onOpen }: { s: ProviderSnapshot; onOpen: () => void 
   );
 }
 
-/** Provider 详情：全部桶 + 燃烧预测 + 切换建议 + Reset 明细 + 来源 */
-export function ProviderDetail({ snapshot: s, insights, onOpenSettings }: { snapshot: ProviderSnapshot; insights: Insights | null; onOpenSettings?: (section?: string) => void }) {
+/** Provider 详情：全部桶 + 燃烧预测 + 切换建议 + Reset 明细 + 来源。
+ *  v0.4：insights 按（provider, account）取本账号数据，不串号 */
+export function ProviderDetail({ snapshot: s, insights, multiAccount, onOpenSettings }: { snapshot: ProviderSnapshot; insights: Insights | null; multiAccount?: boolean; onOpenSettings?: (section?: string) => void }) {
   const { t, lang } = useI18n();
+  const acc = s.accountId ?? "main";
+  const matchAcc = (x: { accountId?: string }) => (x.accountId ?? "main") === acc;
   const hasErr = s.connectionState === "not_connected" || s.connectionState === "auth_required" || s.connectionState === "disconnected";
   // 会话型 Provider（MiMo/WorkBuddy）：登录失效时给一键重登，不再让用户空按刷新
   const sessionLogin = s.providerId === "mimo" || s.providerId === "workbuddy";
   const [reloginBusy, setReloginBusy] = useState(false);
   const [reloginMsg, setReloginMsg] = useState<string | null>(null);
+  const accArg = multiAccount ? { account: acc } : {};
   const relogin = async () => {
     if (!isTauri || reloginBusy) return;
     setReloginBusy(true);
     setReloginMsg(t("detail.relogin_waiting"));
     try {
       if (s.providerId === "workbuddy") {
-        await invoke("workbuddy_open_login");
-        await invoke("workbuddy_read_usage");
-        await invoke("workbuddy_close_login");
+        await invoke("workbuddy_open_login", accArg);
+        await invoke("workbuddy_read_usage", accArg);
+        await invoke("workbuddy_close_login", accArg);
       } else {
-        await invoke("mimo_open_login");
-        await invoke("mimo_read_usage");
-        await invoke("mimo_close_login");
+        await invoke("mimo_open_login", accArg);
+        await invoke("mimo_read_usage", accArg);
+        await invoke("mimo_close_login", accArg);
       }
       setReloginMsg(null); // 成功 → snapshot-updated 事件刷新为数据
     } catch {
@@ -329,7 +377,7 @@ export function ProviderDetail({ snapshot: s, insights, onOpenSettings }: { snap
 
       {/* v0.2：逐桶展示（按显示优先级排序：5h > 周 > reserve 垫底）+ 燃烧预测行（有预测才显示，绝不硬造） */}
       {sortBucketsForDisplay(s.quotaBuckets.filter((b) => !isAggregateBucket(b))).map((b) => {
-        const pred = insights?.predictions?.[s.providerId]?.find((p) => p.bucketId === b.id);
+        const pred = insights?.predictions?.[s.providerId]?.find((p) => p.bucketId === b.id && matchAcc(p));
         return (
           <div key={b.id}>
             <Bucket b={b} />
@@ -402,8 +450,8 @@ export function ProviderDetail({ snapshot: s, insights, onOpenSettings }: { snap
         </div>
       ))}
 
-      {/* v0.2 余额趋势（DeepSeek）：真实余额历史的线性外推，仅估趋势 */}
-      {insights?.balance?.[s.providerId] && (
+      {/* v0.2 余额趋势（DeepSeek）：真实余额历史的线性外推，仅估趋势（main 账号） */}
+      {acc === "main" && insights?.balance?.[s.providerId] && (
         <div className="bucket">
           <div className="err-line">
             <span className="dot stale" />
