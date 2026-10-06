@@ -554,12 +554,18 @@ pub fn close_tray_menu(app: AppHandle) {
 /// Codex：确保 runtime 就绪（v0.3.1 本机优先）：本机 Codex 已登录 → 零下载直接可用；
 /// 否则按需下载官方 Managed Runtime（+ sha512 校验）。
 #[tauri::command]
-pub async fn codex_ensure_runtime(store: State<'_, Store>) -> Result<serde_json::Value, String> {
+pub async fn codex_ensure_runtime(
+    store: State<'_, Store>,
+    force_managed: Option<bool>,
+) -> Result<serde_json::Value, String> {
     // 连接意图：清除断开标记（退出后重新连接的场景）
     store.kv_set("codex/disconnected", "");
-    if let Some(bin) = crate::codex::find_local_codex() {
-        if crate::codex::user_codex_home().is_some() {
-            return Ok(json!({ "ok": true, "localAuth": true, "path": bin.to_string_lossy() }));
+    // 用户明确选择浏览器登录模式（或连接页选了 managed）→ 跳过本机分支
+    if force_managed != Some(true) {
+        if let Some(bin) = crate::codex::find_local_codex() {
+            if crate::codex::user_codex_home().is_some() {
+                return Ok(json!({ "ok": true, "localAuth": true, "path": bin.to_string_lossy() }));
+            }
         }
     }
     crate::codex::ensure_managed_codex()
@@ -590,7 +596,9 @@ pub async fn codex_read_rate_limits(
     rt: State<'_, SharedRuntime>,
     store: State<'_, Store>,
 ) -> Result<serde_json::Value, String> {
-    let snap = crate::codex::fetch_via_app_server().await;
+    // 尊重用户选择的 Codex 模式（连接页卡片写入 kv；缺省=本机优先）
+    let prefer_managed = store.kv_get("codex/mode").as_deref() == Some("managed");
+    let snap = crate::codex::fetch_via_app_server_ctx(prefer_managed).await;
     {
         let mut r = rt.lock().unwrap();
         r.snapshots.insert("codex".to_string(), snap.clone());
@@ -628,8 +636,25 @@ pub async fn codex_logout(
 
 /// Codex：隔离会话登录状态（只读元数据，不读内容、不 spawn 进程）
 #[tauri::command]
-pub fn codex_login_status() -> serde_json::Value {
-    crate::codex::login_status()
+pub fn codex_login_status(store: State<'_, Store>) -> serde_json::Value {
+    let mut base = crate::codex::login_status();
+    let mode = store.kv_get("codex/mode").unwrap_or_else(|| "auto".into());
+    if let Some(obj) = base.as_object_mut() {
+        obj.insert("mode".into(), json!(mode));
+    }
+    base
+}
+
+/// Codex 连接模式选择（v0.3.1 连接页卡片）：local=本机优先 / managed=浏览器登录。
+/// 选择即连接意图：同时清除断开标记。
+#[tauri::command]
+pub fn set_codex_mode(store: State<'_, Store>, mode: String) -> Result<(), String> {
+    if mode != "local" && mode != "managed" {
+        return Err("bad mode".into());
+    }
+    store.kv_set("codex/mode", &mode);
+    store.kv_set("codex/disconnected", "");
+    Ok(())
 }
 
 /// MiMo：显示预声明登录窗（动态建窗在本机会白屏；配置窗可用）

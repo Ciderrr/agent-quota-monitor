@@ -482,6 +482,7 @@ pub fn run() {
             commands::codex_read_rate_limits,
             commands::codex_logout,
             commands::codex_login_status,
+            commands::set_codex_mode,
             commands::mimo_open_login,
             commands::mimo_read_usage,
             commands::mimo_store_usage,

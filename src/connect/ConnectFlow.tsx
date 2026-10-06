@@ -57,9 +57,61 @@ function CodexFlow({ onClose }: { onClose: () => void }) {
   const meta = metaOf("codex");
   const [stage, setStage] = useState<Stage>("idle");
   const [msg, setMsg] = useState<string>("");
+  // 连接模式（用户实测反馈：让用户明确选择"本机 Codex 自动获取"还是"无 Codex 继续下载"，
+  // 而不是后台静默探测——auth.json 存在≠令牌有效，静默选择会让两种失败互相矛盾）
+  const [mode, setMode] = useState<"local" | "managed" | null>(isTauri ? null : "managed");
+  const [localAuth, setLocalAuth] = useState<boolean | null>(null);
   const closing = useAutoClose(onClose, stage === "success");
 
-  const start = async () => {
+  // 挂载时探测本机登录，预选模式
+  useEffect(() => {
+    invoke<{ localAuth?: boolean }>("codex_login_status")
+      .then((r) => {
+        const has = r?.localAuth ?? false;
+        setLocalAuth(has);
+        if (has) setMode("local");
+      })
+      .catch(() => {});
+  }, []);
+
+  // 模式一：本机 Codex 直读（零下载、零登录）
+  const runLocal = async () => {
+    setMode("local");
+    if (!isTauri) {
+      // 浏览器原型：模拟读取成功（ui-check 路径）
+      setStage("testing");
+      setTimeout(async () => {
+        await bridge.markConnected("codex");
+        setStage("success");
+      }, 1600);
+      return;
+    }
+    setStage("testing");
+    setMsg(t("connect.codex.local_mode"));
+    try {
+      await invoke("set_codex_mode", { mode: "local" });
+      const snap = await invoke<{ connectionState?: string; errorState?: { code?: string } }>("codex_read_rate_limits");
+      if (snap?.connectionState === "connected" || snap?.connectionState === "degraded") {
+        setStage("success");
+        setMsg(t("connect.codex.got_quota"));
+      } else {
+        setStage("test-fail");
+        const code = snap?.errorState?.code;
+        setMsg(
+          code === "login_expired"
+            ? t("connect.codex.local_expired_hint")
+            : t("connect.read_fail", { code: code ?? "unknown" }),
+        );
+      }
+    } catch (e) {
+      setStage("test-fail");
+      setMsg(t("connect.read_fail", { code: String(e) }));
+    }
+  };
+
+  // 模式二：托管组件 + 浏览器登录（原流程，尊重用户选择强制下载）
+  const runManaged = async () => {
+    setMode("managed");
     if (!isTauri) {
       setStage("browser");
       setTimeout(() => setStage("waiting"), 700);
@@ -71,14 +123,8 @@ function CodexFlow({ onClose }: { onClose: () => void }) {
     }
     setStage("browser");
     try {
-      // v0.3.1 本机优先：本机 Codex 已登录 → 零下载零登录，直接读取
-      const ensure = await invoke<{ localAuth?: boolean }>("codex_ensure_runtime");
-      if (ensure?.localAuth) {
-        setMsg(t("connect.codex.local_mode"));
-        await afterLogin();
-        return;
-      }
-      setMsg(t("connect.codex.preparing"));
+      await invoke("set_codex_mode", { mode: "managed" });
+      await invoke("codex_ensure_runtime", { forceManaged: true });
     } catch (e) {
       setStage("test-fail");
       setMsg(t("connect.codex.prepare_fail", { err: String(e) }));
@@ -134,40 +180,72 @@ function CodexFlow({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      <button className="primary-btn" onClick={start} disabled={stage !== "idle" && stage !== "success" && stage !== "waiting" && stage !== "test-fail"}>
-        {stage === "success" ? t("connect.done") : t("connect.codex.primary")}
-      </button>
-      {isTauri && (
+      {/* 连接模式选择（用户实测反馈：明确二选一，而非后台静默探测） */}
+      <div className="mode-cards">
+        <button className={`mode-card ${mode === "local" ? "on" : ""}`} onClick={() => setMode("local")}>
+          <span className="mode-name">{t("connect.codex.mode_local")}</span>
+          <span className="helper">
+            {localAuth === null
+              ? t("connect.codex.mode_local_desc")
+              : localAuth
+                ? t("connect.codex.mode_local_detected")
+                : t("connect.codex.mode_local_none")}
+          </span>
+        </button>
+        <button className={`mode-card ${mode === "managed" ? "on" : ""}`} onClick={() => setMode("managed")}>
+          <span className="mode-name">{t("connect.codex.mode_managed")}</span>
+          <span className="helper">{t("connect.codex.mode_managed_desc")}</span>
+        </button>
+      </div>
+      {mode === "local" && (
+        <button className="primary-btn" onClick={runLocal} disabled={stage === "testing"}>
+          {stage === "testing" ? t("connect.reading") : t("connect.codex.read_local")}
+        </button>
+      )}
+      {mode === "managed" && (
         <>
           <button
-            className="foot-btn"
-            onClick={() => {
-              if (isTauri) invoke("open_external", { url: meta.officialUsageUrl }).catch(() => {});
-            }}
+            className="primary-btn"
+            onClick={runManaged}
+            disabled={stage !== "idle" && stage !== "success" && stage !== "waiting" && stage !== "test-fail"}
           >
-            打开登录页
+            {stage === "success" ? t("connect.done") : t("connect.codex.primary")}
           </button>
-          <button className="foot-btn" onClick={afterLogin} disabled={stage === "testing"}>
-            {stage === "testing" ? t("connect.reading") : t("connect.i_logged_in")}
-          </button>
+          {isTauri && (
+            <>
+              <button
+                className="foot-btn"
+                onClick={() => {
+                  if (isTauri) invoke("open_external", { url: meta.officialUsageUrl }).catch(() => {});
+                }}
+              >
+                打开登录页
+              </button>
+              <button className="foot-btn" onClick={afterLogin} disabled={stage === "testing"}>
+                {stage === "testing" ? t("connect.reading") : t("connect.i_logged_in")}
+              </button>
+            </>
+          )}
         </>
       )}
       {msg && <p className="helper" style={{ margin: 0, color: stage === "test-fail" ? "var(--crit)" : "var(--fg)" }}>{msg}</p>}
       {stage === "success" && <p className="helper" style={{ margin: 0, color: "var(--fg)" }}>✓ {closing.label}</p>}
-      <p className="helper">{t("connect.codex.no_install")} {t("connect.codex.helper")}</p>
-      <div className="steps">
-        {[t("connect.codex.step1"), t("connect.codex.step2"), t("connect.codex.step3")].map((label, i) => {
-          const idx = stage === "idle" || stage === "browser" ? 0 : stage === "waiting" ? 1 : stage === "success" ? 3 : 1;
-          const cls = i < idx ? "done" : i === idx && stage !== "idle" ? "active" : "";
-          return (
-            <div key={i} className={`step ${cls}`}>
-              <span className="idx">{i < idx ? "✓" : i + 1}</span>
-              {label}
-              {i === 1 && stage === "waiting" && <span className="spinner" />}
-            </div>
-          );
-        })}
-      </div>
+      {mode !== "local" && <p className="helper">{t("connect.codex.no_install")} {t("connect.codex.helper")}</p>}
+      {mode === "managed" && (
+        <div className="steps">
+          {[t("connect.codex.step1"), t("connect.codex.step2"), t("connect.codex.step3")].map((label, i) => {
+            const idx = stage === "idle" || stage === "browser" ? 0 : stage === "waiting" ? 1 : stage === "success" ? 3 : 1;
+            const cls = i < idx ? "done" : i === idx && stage !== "idle" ? "active" : "";
+            return (
+              <div key={i} className={`step ${cls}`}>
+                <span className="idx">{i < idx ? "✓" : i + 1}</span>
+                {label}
+                {i === 1 && stage === "waiting" && <span className="spinner" />}
+              </div>
+            );
+          })}
+        </div>
+      )}
       <p className="helper quiet" style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <IconLock /> {t("security.credential_notice")}
       </p>

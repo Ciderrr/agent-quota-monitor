@@ -209,10 +209,13 @@ pub struct CodexContext {
 /// v0.3.1（用户要求）：**本机检测优先**——本机装有 Codex 且已登录（~/.codex/auth.json
 /// 存在）时直接复用，免下载 ~160MB 组件、免重复登录；否则回退 Managed Runtime +
 /// 隔离 CODEX_HOME 流程。本机模式零凭据接触：不读 auth.json，只是不覆盖 CODEX_HOME。
-pub fn resolve_codex_context() -> Result<CodexContext, (String, Option<String>)> {
-    if let Some(bin) = find_local_codex() {
-        if user_codex_home().is_some() {
-            return Ok(CodexContext { bin, home: None });
+/// prefer_managed=true 时跳过本机分支（用户在连接页明确选择了浏览器登录模式）。
+pub fn resolve_codex_context(prefer_managed: bool) -> Result<CodexContext, (String, Option<String>)> {
+    if !prefer_managed {
+        if let Some(bin) = find_local_codex() {
+            if user_codex_home().is_some() {
+                return Ok(CodexContext { bin, home: None });
+            }
         }
     }
     if let Some(p) = managed_codex() {
@@ -467,10 +470,10 @@ fn map_rate_limits(result: &Value) -> Snapshot {
     snap
 }
 
-pub async fn fetch_via_app_server() -> Snapshot {
+pub async fn fetch_via_app_server_ctx(prefer_managed: bool) -> Snapshot {
     // v0.3.1 本机优先：本机 Codex + 用户自有登录 → 零下载零重复登录；
     // 否则回退 Managed Runtime + 隔离 CODEX_HOME。
-    let ctx = match resolve_codex_context() {
+    let ctx = match resolve_codex_context(prefer_managed) {
         Ok(c) => c,
         Err((code, detail)) => {
             return Snapshot::not_configured(ID, USAGE_URL, "public_api").with_error(code, detail)
@@ -496,6 +499,11 @@ pub async fn fetch_via_app_server() -> Snapshot {
     }
 }
 
+/// 兼容包装：自动模式（本机优先）
+pub async fn fetch_via_app_server() -> Snapshot {
+    fetch_via_app_server_ctx(false).await
+}
+
 /// 仅停止本软件对 Codex 的监控（不调用 account/logout，不动用户 ~/.codex）
 /// 条目保留在主界面，状态回到「未登录/登录已失效」。
 /// 本机模式下同时打上断开标记（否则下次抓取会立即复用用户登录「自动重连」）。
@@ -511,15 +519,12 @@ pub async fn logout_chatgpt() -> Result<Value, (String, Option<String>)> {
 /// 不读取文件内容（红线：不接触 token）；会话有效性由快照 connection_state 体现。
 /// （曾计划改跑 `codex login status` 子命令获取登录方式，因安全静态钩子对
 /// Command+env 模式误报拦截，本方案零进程派生，信息量足够设置页展示。）
-/// 登录状态（只读元数据，不读取凭据内容）：
-/// - source="local"：用户本机 ~/.codex 已登录（本机模式直接复用）
-/// - source="isolated"：本应用隔离目录已登录（Managed 模式）
-/// - source="none"：两处都未登录
+/// 登录状态（只读元数据，不读取凭据内容）：分别报告用户本机（~/.codex）与
+/// 本应用隔离目录的登录文件存在性；有效与否由快照 connection_state 体现。
 pub fn login_status() -> Value {
     let isolated = monitor_codex_home().join("auth.json").is_file();
     let local = user_codex_home().is_some();
-    let source = if local { "local" } else if isolated { "isolated" } else { "none" };
-    json!({ "loggedIn": local || isolated, "source": source })
+    json!({ "localAuth": local, "isolatedAuth": isolated })
 }
 
 /// 登录：`codex login` 写入**本软件专用** CODEX_HOME，不影响用户 ~/.codex

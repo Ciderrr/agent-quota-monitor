@@ -59,6 +59,7 @@ export type ErrorCode =
   | "not_configured"
   | "auth_required"
   | "login_expired"
+  | "disconnected"
   | "unsupported"
   | "rate_limited"
   | "temporarily_unavailable"
