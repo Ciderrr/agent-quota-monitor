@@ -196,9 +196,8 @@ pub fn set_provider_enabled(
             PROVIDER_IDS.iter().filter(|p| r.enabled.get(**p).copied().unwrap_or(false)).count()
         };
         let already = { rt.lock().unwrap().enabled.get(&id).copied().unwrap_or(false) };
-        // 上限用运行时可配值（1–8，默认 4）；count 按「启用中的卡片数」口径
-        let cap = { rt.lock().unwrap().max_visible };
-        if !already && count >= cap {
+        // 用户裁定：上限固定 8（点开即显示，不做可选数量）
+        if !already && count >= crate::scheduler::MAX_VISIBLE {
             return Err(format!("cap:{count}"));
         }
     }
@@ -434,7 +433,6 @@ pub fn get_settings(rt: State<SharedRuntime>) -> serde_json::Value {
         "glassStrength": r.glass_strength,
         "lang": r.lang,
         "theme": r.theme,
-        "maxVisible": r.max_visible,
         "thresholds": r.thresholds,
     })
 }
@@ -453,7 +451,6 @@ pub fn set_settings(
     glass_strength: Option<f64>,
     lang: Option<String>,
     theme: Option<String>,
-    max_visible: Option<usize>,
 ) -> Result<(), String> {
     let snapshot_json;
     {
@@ -461,10 +458,6 @@ pub fn set_settings(
         if let Some(v) = default_view {
             if v != "collapsed" && v != "overview" { return Err("bad defaultView".into()); }
             r.default_view = v;
-        }
-        if let Some(v) = max_visible {
-            // 用户拍板：主界面卡片数 1–8 可配（默认 4）
-            r.max_visible = v.clamp(crate::scheduler::MAX_VISIBLE_RANGE.0, crate::scheduler::MAX_VISIBLE_RANGE.1);
         }
         if let Some(v) = notify_enabled { r.notify_enabled = v; }
         if let Some(v) = warn { r.thresholds.warn = v; }
@@ -492,7 +485,6 @@ pub fn set_settings(
             "glassStrength": r.glass_strength,
             "lang": r.lang,
             "theme": r.theme,
-            "maxVisible": r.max_visible,
             "thresholds": {
                 "warn": r.thresholds.warn,
                 "crit": r.thresholds.crit,
@@ -1309,7 +1301,8 @@ pub fn list_accounts(rt: State<SharedRuntime>, provider_id: String) -> Vec<crate
     out
 }
 
-/// 添加账号实例：生成随机 account_id 并持久化（上限：每 Provider 3 / 全局 12）
+/// 添加账号实例：生成随机 account_id 并持久化（上限：每 Provider 3 / 全局 12）。
+/// 添加后立即抓一次，避免新账号卡片长时间空白。
 #[tauri::command]
 pub fn add_account(
     app: AppHandle,
@@ -1320,6 +1313,28 @@ pub fn add_account(
 ) -> Result<crate::types::AccountInstance, String> {
     let inst = crate::scheduler::add_account(&rt, &store, &provider_id, label)?;
     let _ = app.emit("accounts-changed", json!({ "providerId": provider_id }));
+    let inst_key = inst.key();
+    let pid = inst.provider_id.clone();
+    {
+        let mut r = rt.lock().unwrap();
+        r.next_due_ms.insert(inst_key.clone(), 0);
+    }
+    let a2 = app.clone();
+    let rt2 = rt.inner().clone();
+    let s2 = store.inner().clone();
+    tauri::async_runtime::spawn(async move {
+        let snap = crate::scheduler::fetch_provider(&inst_key, &rt2, &s2).await;
+        let now = chrono::Utc::now().timestamp_millis();
+        let acc = crate::scheduler::account_of_key(&inst_key);
+        {
+            let mut r = rt2.lock().unwrap();
+            r.snapshots.insert(inst_key.clone(), snap.clone());
+            r.last_fetch_ms.insert(inst_key.clone(), now);
+            r.next_due_ms.insert(inst_key, now + 300_000);
+        }
+        s2.insert_snapshot(&pid, &acc, &serde_json::to_string(&snap).unwrap_or_default());
+        let _ = a2.emit("snapshot-updated", json!({ "providerId": pid }));
+    });
     Ok(inst)
 }
 

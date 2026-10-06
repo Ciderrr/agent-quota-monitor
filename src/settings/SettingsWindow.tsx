@@ -32,7 +32,7 @@ export function SettingsWindow({
   const [section, setSection] = useState<Section>(initialSection);
   const [prefs, setPrefs] = useState({
     launch: false, mode: "desktop", refresh: "smart",
-    notify: true, warn: 0, crit: 0, balance: 0, glass: 100, maxVisible: 4,
+    notify: true, warn: 0, crit: 0, balance: 0, glass: 100,
   });
   const set = <K extends keyof typeof prefs>(k: K, v: (typeof prefs)[K]) => setPrefs((p) => ({ ...p, [k]: v }));
   const [testState, setTestState] = useState<Record<string, "running" | "ok" | undefined>>({});
@@ -145,7 +145,6 @@ export function SettingsWindow({
         crit: s?.thresholds?.crit ?? p.crit,
         balance: s?.thresholds?.balance ?? p.balance,
         glass: Math.round((s?.glassStrength ?? 1) * 100),
-        maxVisible: s?.maxVisible ?? p.maxVisible,
       }));
       if (typeof s?.glassStrength === "number") {
         document.documentElement.style.setProperty("--glass-strength", String(s.glassStrength));
@@ -373,21 +372,6 @@ export function SettingsWindow({
                       aria-label={t("settings.glass")}
                     />
                     <span className="num" style={{ width: 40, textAlign: "right", color: "var(--fg-2)" }}>{prefs.glass}%</span>
-                  </div>
-                </Row>
-                <Row label={t("settings.max_visible")} desc={t("settings.max_visible_desc")}>
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                      <button
-                        key={n}
-                        className="mini-btn"
-                        style={prefs.maxVisible === n ? { borderColor: "var(--fg)", color: "var(--fg)" } : undefined}
-                        onClick={() => { set("maxVisible", n); void notifySettings({ maxVisible: n }); }}
-                        aria-pressed={prefs.maxVisible === n}
-                      >
-                        {n}
-                      </button>
-                    ))}
                   </div>
                 </Row>
                 <Row label={t("settings.window_mode")}>

@@ -15,10 +15,8 @@ pub const PROVIDER_IDS: [&str; 9] = [
 /// 默认启用集（v0.3 起）：最多同时显示 4 家（用户红线）。新装用户默认这 4 家；
 /// 后续启停经设置页持久化到 kv。新扩容 Provider（claude/opencode/kimi/minimax）默认关闭。
 pub const DEFAULT_ENABLED: [&str; 4] = ["codex", "mimo", "deepseek", "workbuddy"];
-/// 主界面卡片显示上限的默认值（用户红线 v0.3；v0.4 起用户可配 1–8，kv settings.maxVisible）
-pub const MAX_VISIBLE: usize = 4;
-/// 卡片上限的合法范围（用户拍板：1–8 张可配）
-pub const MAX_VISIBLE_RANGE: (usize, usize) = (1, 8);
+/// 主界面卡片显示上限（用户裁定：点开即显示，不设可选数量；最多 8 张）
+pub const MAX_VISIBLE: usize = 8;
 
 pub struct Runtime {
     pub snapshots: HashMap<String, Snapshot>,
@@ -35,8 +33,6 @@ pub struct Runtime {
     pub refresh_interval_ms: i64,
     /// 玻璃不透明度 0.3–1.0
     pub glass_strength: f64,
-    /// 主界面卡片显示上限（1–8，用户可配；默认 4 = MAX_VISIBLE）
-    pub max_visible: usize,
     /// ZCode 区域族（zai | bigmodel），由连接时记忆
     pub kv_family: Option<String>,
     /// 每 Provider 最近一次完成抓取的时间（ms）；活动边沿补刷的 30s 判据
@@ -76,16 +72,17 @@ pub fn ik(provider_id: &str) -> String {
     crate::types::instance_key(provider_id, crate::types::MAIN_ACCOUNT)
 }
 
-/// 某 Provider 的全部实例键（实例目录空则视为单 main）；用于按 Provider 触发刷新等场景。
-/// 传入已锁定的 Runtime，避免重复加锁。
+/// 某 Provider 的全部实例键——**main 恒在首位**（用户的第一个/已连接账号永远可见），
+/// 目录实例追加其后。用于快照取数、tick 遍历与按 Provider 触发刷新。
 pub fn instance_keys_in(r: &Runtime, provider_id: &str) -> Vec<String> {
-    let keys: Vec<String> = r
-        .accounts
-        .iter()
-        .filter(|a| a.provider_id == provider_id && a.enabled)
-        .map(|a| a.key())
-        .collect();
-    if keys.is_empty() { vec![ik(provider_id)] } else { keys }
+    let mut keys = vec![ik(provider_id)];
+    for a in r.accounts.iter().filter(|a| a.provider_id == provider_id && a.enabled) {
+        let k = a.key();
+        if k != keys[0] {
+            keys.push(k);
+        }
+    }
+    keys
 }
 
 pub fn instance_keys_for(rt: &SharedRuntime, provider_id: &str) -> Vec<String> {

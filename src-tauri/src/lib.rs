@@ -255,7 +255,7 @@ pub fn run() {
             // 存储
             let store = store::Store::open().map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
             let settings_json = store.kv_get("settings");
-            let (default_view, notify_enabled, thresholds, refresh_interval_ms, glass_strength, lang, theme, max_visible) = settings_json
+            let (default_view, notify_enabled, thresholds, refresh_interval_ms, glass_strength, lang, theme) = settings_json
                 .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
                 .map(|v| {
                     (
@@ -268,12 +268,9 @@ pub fn run() {
                         v.get("glassStrength").and_then(|x| x.as_f64()).unwrap_or(1.0),
                         v.get("lang").and_then(|x| x.as_str()).unwrap_or("zh").to_string(),
                         v.get("theme").and_then(|x| x.as_str()).unwrap_or("dark").to_string(),
-                        v.get("maxVisible").and_then(|x| x.as_u64()).unwrap_or(scheduler::MAX_VISIBLE as u64)
-                            .clamp(scheduler::MAX_VISIBLE_RANGE.0 as u64, scheduler::MAX_VISIBLE_RANGE.1 as u64)
-                            as usize,
                     )
                 })
-                .unwrap_or_else(|| ("collapsed".into(), true, Thresholds::default(), 0i64, 1.0f64, "zh".into(), "dark".into(), scheduler::MAX_VISIBLE));
+                .unwrap_or_else(|| ("collapsed".into(), true, Thresholds::default(), 0i64, 1.0f64, "zh".into(), "dark".into()));
 
             let mut enabled: HashMap<String, bool> = HashMap::new();
             // v0.3：启停持久化到 kv（此前是易失的，重启即全开）；默认集 = 4 家核心
@@ -326,7 +323,6 @@ pub fn run() {
                 notify_enabled,
                 refresh_interval_ms,
                 glass_strength,
-                max_visible,
                 kv_family,
                 lang,
                 theme,
