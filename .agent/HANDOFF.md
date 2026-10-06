@@ -1,129 +1,85 @@
-# HANDOFF.md — 开发交接文档（MiMo Desktop → ZCode / GLM-5.3-Flash）
+# HANDOFF.md — 开发交接文档（v0.3.0 → 下一窗口）
 
-> 交接日期：2026-09-29  
-> 交出方：Xiaomi MiMo Desktop  
-> 接手方：ZCode Coding Agent（模型 GLM-5.3-Flash）  
-> 阅读顺序：**本文件** → `PORTABLE_FIRST.md` → `IMPLEMENTATION_PLAN.md` → `CHANGELOG_GATE_D.md` → `CHANGELOG_GATE_E.md` → `docs/README.md`
+> 交接日期：2026-10-06 · 交出方：ZCode（GLM-5.3-Flash）会话 · 接手方：新窗口
+> 阅读顺序：**本文件** → docs/README.md（索引）→ docs/provider-discovery/*（按需）
+> ⚠️ 本文件取代 2026-09-29 版 HANDOFF（历史见 git log 与 .agent/CHANGELOG_*）。
 
 ---
 
 ## 0. 30 秒速览
 
-- **项目**：AI Agent 用量监控桌面浮窗（Win11；Tauri 2 + Rust + React/TS；Local First；计划开源）。
-- **位置**：`C:\Users\14798\Desktop\monitor`（**已有本地 git**，`master`，未接 GitHub）。
-- **进度**：Gate D 已用户验收通过；**Phase 3 / Gate E 主体已完成并多轮实测**（DeepSeek / Codex / MiMo 可用；ZCode 待真实 Key）。
-- **运行**：桌面快捷方式 `Agent Quota Monitor.lnk`；或 `src-tauri\target\debug\agent-quota-monitor.exe`（需 5173 上有 `npm run dev`）。
-- **验证基线**：`node scripts/ui-check.mjs`（当前 **18/18 PASS**）；Rust `cargo check/build` 零错误（少量 unused 警告）。
-
----
+- **项目**：Agent Quota Monitor——Windows 11 AI 订阅额度监控浮窗（Tauri 2 + Rust + React/TS；Local First；Apache-2.0 开源）。
+- **仓库**：github.com/Ciderrr/agent-quota-monitor（public）；本地 master = 远端 + **3 个未推送提交**（见 §4，用户指示暂缓推送）。
+- **发布状态**：**v0.3.0 已发布（Latest）**——Provider 扩容至 9 家、4 家上限、开关即时反馈；v0.2.2 起内置自动更新（端点 latest.json 已验证）。
+- **最新本地功能（已验证、未推送）**：Codex 本机优先（本机有 Codex+登录 → 零下载直读）+ 连接页模式选择卡 + 断开状态专属错误码。
+- **基线**：ui-check 18/18 PASS；cargo test 7/7；tsc/cargo 零错误；签名安装包在 src-tauri/target/release/bundle/nsis/。
 
 ## 1. 产品与最高原则（勿改）
 
-1. **Portable-first**：Clean PC 只装 Monitor 也能连全部 Provider；本机 Agent 仅 Optional Enhancement。
-2. **Local First / 安全**：无云后端；凭证只入 Windows 凭据管理器；日志/fixture 零明文凭证；仅 https + 主机白名单；SQL 参数绑定。
+1. **Portable-first**：Account-level 接入，Clean PC 即装即连；本机 Agent 仅 Optional Enhancement。
+2. **Local First**：无云后端、无遥测；凭证只入 Windows 凭据管理器；会话只存隔离 WebView2 Profile。
 3. **动态数据模型**：`quotaBuckets[]` + `Custom(raw)`，禁止猜未知语义。
-4. **UI**：Apple Control Center × Widget × Win11 材质；UI 不漂亮 = 不通过。
-5. **Gate 制**：每阶段停下等用户验收。
+4. **主界面最多同时显示 4 家 Provider**（Rust cap + 设置页提示双保险，v0.3.0 起）。
+5. **诚实原则**：区间+置信度而非伪精确值；数据不足/不在燃烧时如实不显示；演示数据必须标注。
+6. **红线**：不读 prompt/代码/对话内容（**v0.3.1 用户裁定修订**：日志型 Provider 只解析用量数值字段=允许，见 docs/provider-discovery/claude.md）；绝不触碰用户 ~/.codex / ~/.claude 的登录凭据内容（存在性检查=允许）；仅 https+主机白名单；SQL 参数绑定；预声明窗关闭用 hide() 禁 close()。
 
-**红线摘要（无例外）**：不上传数据；日志只留 `credential_id`；拒 localhost/私有地址做 Provider 请求；Reset 仅监控；不读 prompt/代码/对话；UI 层零 Provider 域名/鉴权；演示数据必须标注；**不碰用户本机 Codex 的 `~/.codex` 登录**（见 §5）。
+## 2. 当前能力矩阵（9 Provider）
 
----
-
-## 2. 当前可运行能力
-
-| 模块 | 状态 | 说明 |
+| Provider | 路由 | 状态 |
 |---|---|---|
-| 浮窗 UI | ✅ | 透明圆角玻璃；精简/详情/统计/设置/托盘；拖动、置顶、玻璃透明度可调 |
-| DeepSeek | ✅ | API Key → 余额 + 余额历史；测试连接为真请求；清除连历史一并清 |
-| Codex | ✅ | Managed Runtime 下载 + `codex app-server`；ChatGPT 登录；额度桶/Reset/Credits |
-| MiMo Token Plan | ✅ | 隔离登录窗 + 会话读取 `tokenPlan/usage|detail`；自动读额度 |
-| ZCode / GLM | ⚠️ | 适配器已写（裸 key + 双区域 + Custom(raw)）；**无订阅无法真测** |
-| 托盘 | ✅ | 左键呼出；右键自绘菜单（刷新/置顶/设置/退出）；置顶切换不关菜单 |
+| Codex | 本机优先（新）→ Managed Runtime + 隔离登录 | ✅ 本机模式已验证 |
+| DeepSeek | 官方 Balance API | ✅ |
+| MiMo Token Plan | 官方页会话（隔离 WebView2） | ✅（用户需重登） |
+| WorkBuddy Credits | 官方页会话（隔离 WebView2） | ✅（用户需重登） |
+| Claude Code | **日志型**（~/.claude JSONL 字段级解析） | ✅（红线修订已获用户裁定） |
+| opencode | **DB 型**（opencode.db 列级只读） | ✅（本机 schema 实测） |
+| Kimi | 双路由（API Key 余额 / kimi.com 控制台 token 周限额） | ⚠️ 待凭据验证 |
+| MiniMax | API Key → coding_plan/remains | ⚠️ 待凭据验证 |
+| ZCode·GLM | API Key → quota/limit（BurnRate 实证语义） | ⚠️ 用户无订阅搁置 |
 
----
+## 3. v0.3.0 未推送提交（用户指示：随下次发版一起推）
 
-## 3. Phase 3 / Gate E 本轮实测结论
+| 提交 | 内容 |
+|---|---|
+| 56f2b6c | Codex 本机优先（resolve_codex_context：本机二进制+~/.codex 登录优先，spawn 签名 Option<&Path>，login_status 加 localAuth/isolatedAuth，logout 断开标记） |
+| 5517158 | latest.json 移出库 + gitignore（发布产物按需生成） |
+| d930143 | 连接页模式选择卡（本机/浏览器登录二选一，set_codex_mode 持久化 kv codex/mode，fetch 尊重 prefer_managed，断开标记改专属错误码 disconnected） |
 
-### Codex（ADR-004）
-- 官方 npm `@openai/codex@0.158.0-win32-x64`（约 161MB）按需下载 + **sha512**；解压整个 `bin/` 到  
-  `%LOCALAPPDATA%\AgentQuotaMonitor\runtimes\codex\0.158.0\`
-- **CODEX_HOME 隔离**：`%LOCALAPPDATA%\AgentQuotaMonitor\codex-home`（与用户 `~/.codex` 分离）
-- `codex login`（专用 HOME）→ 浏览器 OAuth → `auth.json` 写入隔离目录 → `account/rateLimits/read`
-- **坑**：
-  1. RPC 后**不可 drop stdin**，否则 app-server 不回包（曾误报 `network_unavailable`）
-  2. `codex login` 进程必须活到 OAuth 回调完成（曾 3 秒杀进程 → `127.0.0.1` 拒绝连接）
-  3. 普通浏览器登 chatgpt.com **≠** Codex CLI 登录
-  4. 登录成功后必须**立刻拉额度并写快照**，否则设置仍显示「登录已失效」
-  5. `granted`/`toppedUp` 可为 `null`，前端须 `!= null` 与 `money()` 空值兜底
+## 4. 发布流程（v0.2.2 起的完整闭环，严格按序）
 
-### MiMo（ADR-005 + fixture）
-- `fixtures/mimo-token-plan.redacted.json`：`monthUsage.percent` 为 **0–1**；`detail.planCode/currentPeriodEnd`
-- 预声明窗 `mimo-login` → 官方登录 → 同源 fetch → 多通道回传（IPC / `aqm://` / event）
-- **坑**：动态建 WebView 会白屏卡死 → **一律用 tauri.conf 预声明窗**；远程页 IPC 需 `dangerousRemoteDomainIpcAccess`；刷新按钮必须走会话读取而非调度器 tick
+1. 版本号四处：package.json / src-tauri/tauri.conf.json / src-tauri/Cargo.toml / codex.rs clientInfo（grep "0.3.0" 可定位）。
+2. 先 `taskkill /F /IM agent-quota-monitor.exe`（否则链接器 os error 5）。
+3. **签名构建**：`export TAURI_SIGNING_PRIVATE_KEY="$HOME/.tauri/agent-quota-monitor.key" && export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" && npm run tauri build`（.env 文件无效；密钥丢了将无法再发更新）。
+4. `node scripts/gen-latest-json.mjs "release notes"` → 生成 latest.json（updater 清单，**必须随 Release 上传**，缺失=更新链路失效）。
+5. `git push` → `git tag vX.Y.Z && git push origin vX.Y.Z` → `gh release create vX.Y.Z <安装包> latest.json --notes ...`（附 SHA256）。
+6. 验证：`curl -x http://127.0.0.1:7890 https://github.com/Ciderrr/agent-quota-monitor/releases/latest/download/latest.json`（本机直连 GitHub 会挂，必须走 Clash 代理）。
 
-### DeepSeek
-- 真实测试连接、余额阈值通知、隐私清除含历史；**无用量 API**（禁止余额差冒充消费）
-
----
-
-## 4. 环境与命令
+## 5. 环境与命令速查
 
 ```powershell
 cd C:\Users\14798\Desktop\monitor
 npm install
-npm run dev                 # 5173（usePolling 勿关）
+npm run dev                 # vite 只绑 [::1]——探测一律用 http://localhost:5173，127.0.0.1 会拒连
 node scripts/ui-check.mjs   # 期望 18/18
-node scripts/screenshot.mjs http://localhost:5173
-# 真实壳
-src-tauri\target\debug\agent-quota-monitor.exe
-# Rust
-cd src-tauri; cargo check; cargo build
+node scripts/hero-shot.mjs http://localhost:5173 tmp-hero/hero.png   # 主视觉图（用户审核后入库）
+cd src-tauri; cargo check; cargo test   # predict 引擎 7 测试
+src-tauri\target\release\agent-quota-monitor.exe   # 真实壳（构建后需 taskkill 旧实例）
 ```
 
-**环境坑**（与前次交接相同）：
-1. Vite 文件监听失效 → `usePolling` 保持开启  
-2. 5173 残留 vite → `netstat -ano | findstr :5173` + `taskkill /F /PID`  
-3. cargo 不在 PATH → ` $env:Path += ";$env:USERPROFILE\.cargo\bin"`  
+**高频坑**：cargo 改代码后"Finished 0.4s"可能是缓存假绿——touch 源文件强制重验；运行实例不杀则 cargo build --release 报 os error 5；taskkill /F 强杀会留 Alt+Tab 幽灵条目（explorer 重启清除）；makensis 脚本禁中文（bad text encoding）；bash heredoc 中文进 NSIS/自动化脚本会编码损坏；node:sqlite 直查 DB 时用绝对路径。
 
----
+## 6. 剩余工作（路线图）
 
-## 5. 架构与安全注意（接手必读）
+1. **v0.4 多账号**（下一个主版本）：同 Provider 多账号（数据模型加 account 维度、调度器按账号实例化、设置页账号切换器）。
+2. **P2 Provider**（调研已完成，见 docs/provider-discovery/）：Gemini CLI 日志型（红线修订后解锁，需本机装 CLI 验证）；Copilot（非官方 copilot_internal + 设备流）；豆包/火山（Agent Plan 有 API，需 V4 签名）；Qwen（ACS3 签名）；混元（TC3 签名，ModelCost_Monitor 可抄）。
+3. **不可行备忘**：Grok（无 API）、MiMo Desktop（无数据源）、opencode Go 订阅（无订阅）。
+4. **远期**：macOS 移植；LAN 只读看板；Claude OAuth 官方百分比路线（只读不刷新）；24h 定时更新检查（可选）。
+5. **待用户**：MiMo/WorkBuddy 重登；Kimi/MiniMax 凭据（可选，免费试用额度即可闭环验证）。
 
-- **窗口**：`widget` / `settings` / `tray-menu` / `mimo-login` 均在 `tauri.conf.json` **预声明**；关闭用 `hide()` **禁止 `close()`**（close 会销毁预声明窗，之后打不开）。
-- **二次动态 Webview 在本机会白屏/卡死**，不要再 `WebviewWindowBuilder::new` 动态建 UI 窗。
-- **`data-tauri-drag-region` 不可靠** → `start_window_drag` 显式 `start_dragging()`；行/按钮须排除，否则点不进详情。
-- **改窗口尺寸**须保持**右边缘**固定，否则浮窗向右漂。
-- **Codex 登出** = 仅清隔离 `codex-home` + 快照回「登录已失效」；**绝不 `account/logout` 用户 `~/.codex`**。
-- **设置窗 X** 不能放进整条 title 拖拽区，否则点不到。
-- **capability**：`windows` 含全部预声明窗；`core:event:allow-emit` 等；外部域 IPC 见 `dangerousRemoteDomainIpcAccess`。
+## 7. 协作规范（多轮验证有效）
 
----
-
-## 6. 剩余工作（建议顺序）
-
-1. **ZCode 真实 Key 验证轮**（用户提供控制台 Coding Plan API Key）：确认 `limits[]` 字段后把 `Custom(raw)` 升级为标准枚举；无订阅则保持现状。  
-2. **Gate E 验收**：四家真实数据 + Clean-PC 说明 + 错误态演练 → `CHANGELOG_GATE_E.md` 定稿。  
-3. **Phase 4 / Gate F**：`docs/performance.md` 全测、SECURITY §7 审计、CI grep、NSIS 打包 + GitHub 发布。  
-4. **可选**：活动检测（进程名 + mtime，仅优化刷新）；`codex login status` 展示；zsh/bash 工具链 README。
-
----
-
-## 7. 用户协作规范（多轮确认）
-
-1. 全程中文；用户反馈按编号，回复逐条「哪条改了什么」。  
-2. UI 验收优先；改 UI 后 `ui-check` + 截图 + 说明怎么看。  
-3. 诚实第一：占位/演示必须标注；做不到直说。  
-4. 每次改动后自检：UI → ui-check；Rust → cargo 零错误。  
-5. 本地 git：有意义即 commit；**不** push（用户尚未要 GitHub）。
-
----
-
-## 8. 仓库与 git
-
-- 本地 `master` 已有完整提交历史（从 Initial commit 到 Codex/MiMo 各修复）。  
-- `.gitignore` 含 `node_modules/`、`target/`、`.tmp-mimo/`（**浏览器 profile 绝不可入库**）。  
-- Fixtures 均脱敏，可进库。
-
----
-
-*交接结束。文档与代码不一致时，以代码 + 最新 CHANGELOG 为准，并在 `CHANGELOG_GATE_E.md` 或后续 CHANGELOG 如实记录。*
+1. 全程中文；用户反馈按编号，回复逐条「哪条改了什么」。
+2. UI 改动后必跑 ui-check + 截图说明；Rust 改动 cargo 零错误 + **真实壳冒烟**（cargo check 查不出运行时 panic）。
+3. 大段代码写完立即编译验证；UI 自动化脚本勿含中文串；中文注释勿写 `*/`。
+4. 有意义即本地 commit；**未经用户指示不 push GitHub**（当前明确指示：未推送提交暂缓）。
+5. 诚实第一：做不到直说；占位标注；错误码语义单一（勿一码多用）。
