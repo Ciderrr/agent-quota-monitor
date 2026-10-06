@@ -40,6 +40,7 @@ export function SettingsWindow({
   const [snaps, setSnaps] = useState<Record<string, { connectionState?: string; errorState?: { code?: string } }>>({});
   const [creds, setCreds] = useState<Record<string, boolean>>({});
   const [codexSess, setCodexSess] = useState<boolean | null>(null);
+  const [codexSource, setCodexSource] = useState<string>("none");
   const [appVersion, setAppVersion] = useState("");
   const [capHint, setCapHint] = useState(false);
   // 更新状态机（v0.2.2）：idle → checking → latest | available → downloading | failed
@@ -98,7 +99,10 @@ export function SettingsWindow({
       setSnaps(m);
     }).catch(() => {});
     invoke<Record<string, boolean>>("get_credential_status").then(setCreds).catch(() => {});
-    invoke<{ loggedIn: boolean }>("codex_login_status").then((r) => setCodexSess(r?.loggedIn ?? null)).catch(() => {});
+    invoke<{ loggedIn: boolean; source?: string }>("codex_login_status").then((r) => {
+      setCodexSess(r?.loggedIn ?? null);
+      setCodexSource(r?.source ?? "none");
+    }).catch(() => {});
     // 启停状态每次一并刷新（v0.3.1：此前只在挂载时拉一次且失败即空表，
     // 空表 + 「?? true」兜底让 9 家全部显示为开启——用户实测 9/4 的根因）
     invoke<Record<string, boolean>>("list_providers_enabled").then((m) => {
@@ -395,7 +399,11 @@ export function SettingsWindow({
                         {testing === "ok" && <span className="desc" style={{ marginTop: 0, color: "var(--fg)" }}>✓ {t("connect.test_ok")}</span>}
                         {p.id === "codex" && codexSess !== null && (
                           <span className="desc" style={{ marginTop: 0 }}>
-                            {codexSess ? t("settings.codex_sess_in") : t("settings.codex_sess_out")}
+                        {codexSource === "local"
+                          ? t("settings.codex_local_mode")
+                          : codexSess
+                            ? t("settings.codex_sess_in")
+                            : t("settings.codex_sess_out")}
                           </span>
                         )}
                       </div>

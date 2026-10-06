@@ -22,11 +22,13 @@ pub fn silence_std(_cmd: &mut std::process::Command) {}
 #[cfg(not(windows))]
 pub fn silence_tokio(_cmd: &mut tokio::process::Command) {}
 
-/// `codex app-server`（隔离 CODEX_HOME），隐藏窗口
-pub fn spawn_app_server(bin: &Path, codex_home: &Path) -> std::io::Result<tokio::process::Child> {
+/// `codex app-server`（codex_home=None 时用用户默认 ~/.codex——本机模式，零凭据接触）
+pub fn spawn_app_server(bin: &Path, codex_home: Option<&Path>) -> std::io::Result<tokio::process::Child> {
     let mut cmd = tokio::process::Command::new(bin);
     cmd.args(["app-server"]);
-    cmd.env("CODEX_HOME", codex_home);
+    if let Some(home) = codex_home {
+        cmd.env("CODEX_HOME", home);
+    }
     cmd.stdin(Stdio::piped());
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::null());

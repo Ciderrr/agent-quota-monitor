@@ -551,12 +551,20 @@ pub fn close_tray_menu(app: AppHandle) {
     }
 }
 
-/// Codex：确保 managed runtime 就绪（官方 npm 下载 + sha512）
+/// Codex：确保 runtime 就绪（v0.3.1 本机优先）：本机 Codex 已登录 → 零下载直接可用；
+/// 否则按需下载官方 Managed Runtime（+ sha512 校验）。
 #[tauri::command]
-pub async fn codex_ensure_runtime() -> Result<serde_json::Value, String> {
+pub async fn codex_ensure_runtime(store: State<'_, Store>) -> Result<serde_json::Value, String> {
+    // 连接意图：清除断开标记（退出后重新连接的场景）
+    store.kv_set("codex/disconnected", "");
+    if let Some(bin) = crate::codex::find_local_codex() {
+        if crate::codex::user_codex_home().is_some() {
+            return Ok(json!({ "ok": true, "localAuth": true, "path": bin.to_string_lossy() }));
+        }
+    }
     crate::codex::ensure_managed_codex()
         .await
-        .map(|p| json!({ "ok": true, "path": p.to_string_lossy() }))
+        .map(|p| json!({ "ok": true, "localAuth": false, "path": p.to_string_lossy() }))
         .map_err(|(c, d)| format!("{c}: {}", d.unwrap_or_default()))
 }
 
@@ -602,6 +610,9 @@ pub async fn codex_logout(
     crate::codex::logout_chatgpt()
         .await
         .map(|_| {
+            // 断开标记：本机模式下清隔离目录无法断开（用户登录仍在），
+            // fetch 侧检查此标记直到用户重新连接
+            store.kv_set("codex/disconnected", "1");
             let snap = crate::scheduler::not_connected_snapshot("codex")
                 .with_error("login_expired".into(), Some("monitor disconnected".into()));
             {

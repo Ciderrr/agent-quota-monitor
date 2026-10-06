@@ -286,7 +286,15 @@ pub async fn fetch_provider(id: &str, rt: &SharedRuntime, store: &crate::store::
             }
         }
         // Codex：官方 app-server；MiMo/WorkBuddy：会话读取结果写入后保留，不因重启降级为「需要登录」
-        crate::codex::ID => crate::codex::fetch_via_app_server().await,
+        crate::codex::ID => {
+            // 断开标记（本机模式下 logout 无法靠清隔离目录断开——用户登录仍在）
+            if store.kv_get("codex/disconnected").as_deref() == Some("1") {
+                not_connected_snapshot(crate::codex::ID)
+                    .with_error("login_expired".into(), Some("已断开监控，连接以恢复".into()))
+            } else {
+                crate::codex::fetch_via_app_server().await
+            }
+        }
         crate::mimo::ID => {
             crate::scheduler::session_cached_snapshot(crate::mimo::ID, rt, store, crate::mimo::login_required())
         }

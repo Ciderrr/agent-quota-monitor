@@ -1,0 +1,11 @@
+{
+  "version": "0.3.0",
+  "notes": "v0.3.0 — Provider 扩容：Claude / Kimi / MiniMax / opencode",
+  "pub_date": "2026-10-06T14:22:29.342Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSa1lPaUhQQVNsTUtob3FFcENMYUdvbnQxeHc3ak1Pa0s4RkFlSitZZGdRbEVrdE93TWEyTHV5UzBzbkp6WnV6QlRDVStJYXdBdytlWng3akREMlZKL0hUaStyNElteEE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMTUxNTgyCWZpbGU6QWdlbnQgUXVvdGEgTW9uaXRvcl8wLjMuMF94NjQtc2V0dXAuZXhlCXZlcnNpb246MC4zLjAKSEY4aVBoYUVQM0pOdnNxcjVDZUFaV3RxR0I3VGJRTlVTNzUwR2Fnd3RnZjAwbkV4NForckwyeGs0TFZ6N3hkUUtpcVcxdGIwZU44dW5iWHhnYmhjQ0E9PQo=",
+      "url": "https://github.com/Ciderrr/agent-quota-monitor/releases/download/v0.3.0/Agent.Quota.Monitor_0.3.0_x64-setup.exe"
+    }
+  }
+}

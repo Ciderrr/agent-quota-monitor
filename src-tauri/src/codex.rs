@@ -5,7 +5,7 @@
 use crate::http::redact;
 use crate::types::*;
 use serde_json::{json, Value};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicI64, Ordering};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
@@ -190,16 +190,50 @@ fn monitor_codex_home() -> PathBuf {
     p
 }
 
-fn spawn_app_server(bin: &PathBuf) -> std::io::Result<tokio::process::Child> {
+/// 用户本机 Codex 的默认 HOME（~/.codex）。只做存在性检查，绝不读取其中的凭据内容。
+pub fn user_codex_home() -> Option<PathBuf> {
+    let home = std::env::var("USERPROFILE")
+        .or_else(|_| std::env::var("HOME"))
+        .ok()?;
+    let p = PathBuf::from(home).join(".codex");
+    p.join("auth.json").is_file().then_some(p)
+}
+
+/// Codex 运行上下文：用哪个二进制 + 哪个 CODEX_HOME
+pub struct CodexContext {
+    pub bin: PathBuf,
+    /// None = 用户默认 ~/.codex（本机模式）；Some = 本应用隔离目录（托管模式）
+    pub home: Option<PathBuf>,
+}
+
+/// v0.3.1（用户要求）：**本机检测优先**——本机装有 Codex 且已登录（~/.codex/auth.json
+/// 存在）时直接复用，免下载 ~160MB 组件、免重复登录；否则回退 Managed Runtime +
+/// 隔离 CODEX_HOME 流程。本机模式零凭据接触：不读 auth.json，只是不覆盖 CODEX_HOME。
+pub fn resolve_codex_context() -> Result<CodexContext, (String, Option<String>)> {
+    if let Some(bin) = find_local_codex() {
+        if user_codex_home().is_some() {
+            return Ok(CodexContext { bin, home: None });
+        }
+    }
+    if let Some(p) = managed_codex() {
+        return Ok(CodexContext { bin: p, home: Some(monitor_codex_home()) });
+    }
+    Err((
+        "not_configured".into(),
+        Some("codex.exe not found (install Codex CLI or download managed runtime)".into()),
+    ))
+}
+
+fn spawn_app_server(bin: &PathBuf, home: Option<&Path>) -> std::io::Result<tokio::process::Child> {
     // 构造与 CREATE_NO_WINDOW 统一在 winproc（GUI 派生控制台程序必须隐藏窗口）
-    crate::winproc::spawn_app_server(bin, &monitor_codex_home())
+    crate::winproc::spawn_app_server(bin, home)
 }
 
 /// 每次快照用短生命周期 app-server（v1 够用；常驻推送 Phase 4 再评估）
 
 /// 简化 RPC：每次快照短生命周期进程（查询成本仅 1 次调用，v1 够用；常驻推送 Gate F 再做）
-async fn call_once(bin: &PathBuf, method: &str, params: Value) -> Result<Value, (String, Option<String>)> {
-    let mut child = spawn_app_server(bin)
+async fn call_once(bin: &PathBuf, home: Option<&Path>, method: &str, params: Value) -> Result<Value, (String, Option<String>)> {
+    let mut child = spawn_app_server(bin, home)
         .map_err(|e| ("network_unavailable".into(), Some(format!("spawn: {e}"))))?;
 
     let mut stdin = child.stdin.take().unwrap();
@@ -434,18 +468,25 @@ fn map_rate_limits(result: &Value) -> Snapshot {
 }
 
 pub async fn fetch_via_app_server() -> Snapshot {
-    let bin = match resolve_codex_bin() {
-        Ok(b) => b,
+    // v0.3.1 本机优先：本机 Codex + 用户自有登录 → 零下载零重复登录；
+    // 否则回退 Managed Runtime + 隔离 CODEX_HOME。
+    let ctx = match resolve_codex_context() {
+        Ok(c) => c,
         Err((code, detail)) => {
             return Snapshot::not_configured(ID, USAGE_URL, "public_api").with_error(code, detail)
         }
     };
+    eprintln!(
+        "[aqm] codex context: {} ({})",
+        if ctx.home.is_none() { "local" } else { "managed" },
+        ctx.bin.display()
+    );
     let params = json!({
         "supportsLunaReserve": false,
         // 重置积分明细（含 expiresAt 过期时间）必须拉取：UI 重置卡要显示具体日期（用户反馈）
         "excludeResetCreditDetails": false
     });
-    match call_once(&bin, "account/rateLimits/read", params).await {
+    match call_once(&ctx.bin, ctx.home.as_deref(), "account/rateLimits/read", params).await {
         Ok(result) => map_rate_limits(&result),
         Err((code, detail)) => {
             let mut s = Snapshot::not_configured(ID, USAGE_URL, "public_api");
@@ -456,7 +497,8 @@ pub async fn fetch_via_app_server() -> Snapshot {
 }
 
 /// 仅停止本软件对 Codex 的监控（不调用 account/logout，不动用户 ~/.codex）
-/// 条目保留在主界面，状态回到「未登录/登录已失效」
+/// 条目保留在主界面，状态回到「未登录/登录已失效」。
+/// 本机模式下同时打上断开标记（否则下次抓取会立即复用用户登录「自动重连」）。
 pub async fn logout_chatgpt() -> Result<Value, (String, Option<String>)> {
     let home = monitor_codex_home();
     for name in ["auth.json", "auth.json.bak"] {
@@ -469,10 +511,15 @@ pub async fn logout_chatgpt() -> Result<Value, (String, Option<String>)> {
 /// 不读取文件内容（红线：不接触 token）；会话有效性由快照 connection_state 体现。
 /// （曾计划改跑 `codex login status` 子命令获取登录方式，因安全静态钩子对
 /// Command+env 模式误报拦截，本方案零进程派生，信息量足够设置页展示。）
+/// 登录状态（只读元数据，不读取凭据内容）：
+/// - source="local"：用户本机 ~/.codex 已登录（本机模式直接复用）
+/// - source="isolated"：本应用隔离目录已登录（Managed 模式）
+/// - source="none"：两处都未登录
 pub fn login_status() -> Value {
-    let home = monitor_codex_home();
-    let present = home.join("auth.json").is_file();
-    json!({ "loggedIn": present })
+    let isolated = monitor_codex_home().join("auth.json").is_file();
+    let local = user_codex_home().is_some();
+    let source = if local { "local" } else if isolated { "isolated" } else { "none" };
+    json!({ "loggedIn": local || isolated, "source": source })
 }
 
 /// 登录：`codex login` 写入**本软件专用** CODEX_HOME，不影响用户 ~/.codex
@@ -491,7 +538,7 @@ pub async fn login_chatgpt() -> Result<String, (String, Option<String>)> {
         return Ok("login_cli_started".into());
     }
     // 回退：app-server login/start（仍写入本软件 CODEX_HOME）
-    let mut child = spawn_app_server(&bin)
+    let mut child = spawn_app_server(&bin, Some(&monitor_codex_home()))
         .map_err(|e| ("network_unavailable".into(), Some(format!("无法启动 codex.exe：{e}"))))?;
     let mut stdin = child.stdin.take().unwrap();
     let stdout = child.stdout.take().unwrap();

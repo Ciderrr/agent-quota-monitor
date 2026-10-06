@@ -70,9 +70,15 @@ function CodexFlow({ onClose }: { onClose: () => void }) {
       return;
     }
     setStage("browser");
-    setMsg(t("connect.codex.preparing"));
     try {
-      await invoke("codex_ensure_runtime");
+      // v0.3.1 本机优先：本机 Codex 已登录 → 零下载零登录，直接读取
+      const ensure = await invoke<{ localAuth?: boolean }>("codex_ensure_runtime");
+      if (ensure?.localAuth) {
+        setMsg(t("connect.codex.local_mode"));
+        await afterLogin();
+        return;
+      }
+      setMsg(t("connect.codex.preparing"));
     } catch (e) {
       setStage("test-fail");
       setMsg(t("connect.codex.prepare_fail", { err: String(e) }));
